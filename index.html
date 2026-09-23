@@ -6,50 +6,56 @@
   <title>Inspección MT - TECSUR / LDS</title>
   <style>
     :root {
-      --primary: #0056b3;
-      --success: #28a745;
-      --warning: #e0a800;
-      --bg: #f0f2f5;
-      --card: #ffffff;
-      --accent: #e7f1ff;
-      --border: #dbe2ea;
+      --bg-main: #0a192f;        /* Azul petróleo profundo */
+      --card-bg: #112240;        /* Azul marino intermedio */
+      --card-border: #1e3a5f;    /* Borde azul técnico */
+      --primary: #0284c7;        /* Azul primario vibrante */
+      --primary-hover: #0369a1;
+      --accent: #38bdf8;         /* Celeste cian para contrastes y focos */
+      --success: #10b981;        /* Verde esmeralda para foto */
+      --warning: #f59e0b;
+      --text-main: #f1f5f9;      /* Blanco perla legible */
+      --text-muted: #94a3b8;     /* Gris azulado para etiquetas secundarias */
+      --input-bg: #0d1b2a;       /* Azul noche para cajas de texto */
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
+      background: var(--bg-main);
       margin: 0;
       padding: 10px;
-      color: #212529;
+      color: var(--text-main);
     }
     .container {
       max-width: 600px;
       margin: auto;
     }
     .panel {
-      background: var(--card);
+      background: var(--card-bg);
       padding: 14px;
       border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       margin-bottom: 12px;
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
     }
-    h2 {
+    h2, h3 {
       margin: 0 0 10px 0;
-      color: var(--primary);
-      font-size: 18px;
+      color: var(--accent);
     }
+    h2 { font-size: 18px; }
+    h3 { font-size: 15px; }
+
     .section-title {
       font-size: 13px;
       font-weight: bold;
-      color: #0f172a;
-      background: #f1f5f9;
+      color: var(--text-main);
+      background: #172a45;
       padding: 8px 10px;
       border-radius: 6px;
       margin: 14px 0 8px 0;
-      border-left: 4px solid var(--primary);
+      border-left: 4px solid var(--accent);
     }
 
-    /* Caja de texto y temporizador */
+    /* Caja de dictado */
     .input-box-container {
       display: flex;
       flex-direction: column;
@@ -60,7 +66,9 @@
       width: 100%;
       height: 70px;
       padding: 10px;
-      border: 1px solid #ced4da;
+      background: var(--input-bg);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
       border-radius: 8px;
       box-sizing: border-box;
       font-size: 15px;
@@ -69,22 +77,21 @@
     }
     textarea:focus {
       outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(0,86,179,0.15);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
     }
 
-    /* Barra visual de cuenta regresiva de 10s */
     .timer-bar-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 11px;
-      color: #64748b;
+      color: var(--text-muted);
       margin-bottom: 2px;
     }
     .timer-badge {
       font-weight: bold;
-      color: var(--primary);
+      color: var(--accent);
     }
     .timer-badge.active {
       color: var(--warning);
@@ -108,28 +115,31 @@
       gap: 6px;
       transition: 0.2s;
     }
-    .btn-process {
-      background: var(--primary);
+    .btn-process { background: var(--primary); color: white; }
+    .btn-process:active { background: var(--primary-hover); }
+    .btn-cam { background: var(--success); color: white; }
+    .btn-csv {
+      background: #0284c7;
       color: white;
+      width: 100%;
+      margin-top: 10px;
     }
-    .btn-cam {
-      background: var(--success);
-      color: white;
-    }
+    .btn-csv:active { background: #0369a1; }
 
     /* Monitor en tiempo real */
     .rt-monitor {
-      background: #1e293b;
-      color: #f8fafc;
+      background: #0d1b2a;
+      color: var(--text-main);
       padding: 10px;
       border-radius: 8px;
-      border-left: 4px solid #38bdf8;
+      border-left: 4px solid var(--accent);
       margin-top: 8px;
+      border: 1px solid var(--card-border);
     }
     .rt-title {
       font-size: 11px;
       text-transform: uppercase;
-      color: #94a3b8;
+      color: var(--text-muted);
     }
     .rt-tags-container {
       display: flex;
@@ -146,19 +156,60 @@
       gap: 6px;
     }
     .badge-field {
-      background: #0284c7;
+      background: #0369a1;
       color: #fff;
       padding: 2px 6px;
       border-radius: 4px;
       font-family: monospace;
       font-size: 12px;
     }
-    .badge-arrow { color: #38bdf8; }
+    .badge-arrow { color: var(--accent); }
     .badge-value {
-      background: #334155;
+      background: #1e3a5f;
       padding: 2px 6px;
       border-radius: 4px;
       font-size: 12px;
+      color: #e2e8f0;
+    }
+
+    /* Tabla de resumen */
+    .table-container {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      margin-top: 8px;
+      background: var(--input-bg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+    th {
+      background: #172a45;
+      color: var(--accent);
+      font-weight: 600;
+      padding: 8px;
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    td {
+      padding: 7px 8px;
+      border-bottom: 1px solid #1e3a5f;
+      color: var(--text-main);
+    }
+    tr:nth-child(even) { background: #0f223a; }
+    .td-field { font-family: monospace; font-weight: 600; color: #38bdf8; }
+    .td-val { font-weight: 500; }
+    .empty-table-msg {
+      text-align: center;
+      padding: 16px;
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     /* Galería */
@@ -174,14 +225,14 @@
       padding-top: 100%;
       border-radius: 6px;
       overflow: hidden;
-      border: 1px solid #ccc;
+      border: 1px solid var(--card-border);
     }
     .photo-thumb img {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
     }
 
-    /* Formulario */
+    /* Campos de formulario */
     .form-group {
       margin-bottom: 6px;
       padding: 4px 6px;
@@ -189,27 +240,33 @@
       transition: background 0.3s ease;
     }
     .form-group.updated {
-      background: var(--accent);
-      border-left: 3px solid var(--primary);
+      background: #1e3a5f;
+      border-left: 3px solid var(--accent);
     }
     label {
       display: block;
       font-size: 11px;
       font-weight: 600;
-      color: #475569;
+      color: var(--text-muted);
       margin-bottom: 2px;
     }
     input[type="text"] {
       width: 100%;
       padding: 8px;
-      border: 1px solid #ced4da;
+      background: var(--input-bg);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
       border-radius: 6px;
       box-sizing: border-box;
       font-size: 13px;
     }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
     .status {
       font-size: 11px;
-      color: #64748b;
+      color: var(--text-muted);
       margin-top: 4px;
     }
   </style>
@@ -217,15 +274,15 @@
 <body>
   <div class="container">
     
+    <!-- 1. PANEL DE ENTRADA Y DICTADO -->
     <div class="panel">
       <h2>Inspección de Red MT (TECSUR/LDS)</h2>
       
-      <!-- Entrada con dictado nativo -->
       <div class="input-box-container">
-        <textarea id="dictadoInput" placeholder="Toca aquí y usa el micrófono del teclado. Se procesará tras 10s de pausa o al pulsar el botón..."></textarea>
+        <textarea id="dictadoInput" placeholder="Toca aquí y usa el micrófono del teclado. Se procesa a los 10s de pausa o con el botón..."></textarea>
         
         <div class="timer-bar-container">
-          <span>Auto-procesamiento en pausa:</span>
+          <span>Auto-procesamiento:</span>
           <span id="countdownBadge" class="timer-badge">Inactivo</span>
         </div>
 
@@ -241,7 +298,7 @@
 
       <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
 
-      <!-- Monitor de campos clasificados -->
+      <!-- Monitor en vivo de última frase -->
       <div class="rt-monitor">
         <div class="rt-title">En tiempo real (Última clasificación)</div>
         <div id="rtTagsContainer" class="rt-tags-container">
@@ -253,25 +310,54 @@
         </div>
       </div>
 
-      <div id="statusText" class="status">Listo para recibir dictado o fotos.</div>
+      <div id="statusText" class="status">Listo para recibir datos.</div>
 
-      <!-- Galería de fotos -->
-      <h4 style="margin: 8px 0 2px 0; font-size: 11px; color: #555;">
+      <!-- Galería -->
+      <h4 style="margin: 8px 0 2px 0; font-size: 11px; color: var(--text-muted);">
         Fotos en sesión <span id="photoCounter">(0)</span>
       </h4>
       <div id="photoContainer" class="photo-grid"></div>
     </div>
 
-    <!-- Formulario completo -->
+    <!-- 2. PANEL INTERMEDIO: TABLA DE RESUMEN Y EXPORTACIÓN CSV -->
     <div class="panel">
-      <h3 style="margin-top:0; color:#0056b3;">Catálogo de Inspección Completo</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">Borrador de Inspección Activa</h3>
+        <span id="filledCountBadge" style="font-size:11px; background:#1e3a5f; padding:2px 8px; border-radius:12px; font-weight:bold; color:var(--accent);">
+          0 campos llenados
+        </span>
+      </div>
+
+      <div class="table-container">
+        <table id="summaryTable">
+          <thead>
+            <tr>
+              <th style="width: 45%;">Campo</th>
+              <th style="width: 55%;">Valor Registrado</th>
+            </tr>
+          </thead>
+          <tbody id="summaryTableBody">
+            <tr>
+              <td colspan="2" class="empty-table-msg">Ningún campo registrado todavía.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <button id="btnExportCsv" class="btn-csv">
+        <span>📥</span> Guardar Borrador (Descargar CSV)
+      </button>
+    </div>
+
+    <!-- 3. CATÁLOGO COMPLETO DE INSPECCIÓN -->
+    <div class="panel">
+      <h3 style="margin-top:0;">Catálogo de Inspección Completo</h3>
       <div id="dynamicForm"></div>
     </div>
 
   </div>
 
   <script>
-    // Catálogo completo según schema_mt.py
     const SCHEMA_MT = {
       "Datos Principales": [
         "sst", "set", "nro_alimentador", "tipo_nodo_inicial", "nro_nodo_inicial",
@@ -337,7 +423,6 @@
       ]
     };
 
-    // Renderizar dinámicamente todo el formulario
     const dynamicForm = document.getElementById("dynamicForm");
     Object.entries(SCHEMA_MT).forEach(([seccion, campos]) => {
       const secHeader = document.createElement("div");
@@ -366,9 +451,41 @@
     const rtTagsContainer = document.getElementById("rtTagsContainer");
     const countdownBadge = document.getElementById("countdownBadge");
 
+    const summaryTableBody = document.getElementById("summaryTableBody");
+    const filledCountBadge = document.getElementById("filledCountBadge");
+    const btnExportCsv = document.getElementById("btnExportCsv");
+
     let photos = [];
 
-    // Función para actualizar campos en el formulario
+    function refreshSummaryTable() {
+      const inputs = dynamicForm.querySelectorAll("input[type='text']");
+      let filledRows = [];
+
+      inputs.forEach(input => {
+        const val = input.value.trim();
+        if (val !== "") {
+          filledRows.push({ campo: input.id, valor: val });
+        }
+      });
+
+      filledCountBadge.innerText = `${filledRows.length} campos llenados`;
+
+      if (filledRows.length === 0) {
+        summaryTableBody.innerHTML = `<tr><td colspan="2" class="empty-table-msg">Ningún campo registrado todavía.</td></tr>`;
+        return;
+      }
+
+      summaryTableBody.innerHTML = "";
+      filledRows.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="td-field">${item.campo}</td>
+          <td class="td-val">${item.valor}</td>
+        `;
+        summaryTableBody.appendChild(tr);
+      });
+    }
+
     function setField(fieldName, val) {
       const el = document.getElementById(fieldName);
       if (el) {
@@ -380,7 +497,6 @@
       }
     }
 
-    // Motor de inferencia semántico multi-campo[cite: 1]
     function procesarTexto(texto) {
       const t = texto.toLowerCase();
       const updates = [];
@@ -484,7 +600,6 @@
         updates.push({ campo: "cod_activo_principal", valor: matchCodigo[1].toUpperCase() });
       }
 
-      // 9. Fallback general a observaciones[cite: 1]
       if (updates.length === 0) {
         updates.push({ campo: "observaciones", valor: texto });
       }
@@ -492,7 +607,6 @@
       return updates;
     }
 
-    // Función unificada que ejecuta la clasificación
     function ejecutarClasificacion() {
       detenerTemporizador();
       const texto = dictadoInput.value.trim();
@@ -510,11 +624,11 @@
         rtTagsContainer.appendChild(div);
       });
 
-      statusText.innerText = `✓ Clasificado con éxito: ${resultados.length} campo(s) llenado(s).`;
+      refreshSummaryTable();
+      statusText.innerText = `✓ Clasificado: ${resultados.length} campo(s) actualizados.`;
       dictadoInput.value = "";
     }
 
-    // LÓGICA DE TEMPORIZADOR DE 10 SEGUNDOS (DEBOUNCING VISUAL)
     let timerId = null;
     let countdownInterval = null;
     let timeLeft = 10;
@@ -548,22 +662,16 @@
       countdownBadge.className = "timer-badge";
     }
 
-    // Escuchar dictado o entrada de texto en el textarea
     dictadoInput.addEventListener("input", () => {
-      const texto = dictadoInput.value.trim();
-      if (texto.length > 0) {
-        iniciarTemporizador(); // Reinicia la cuenta de 10s tras cada palabra dictada
+      if (dictadoInput.value.trim().length > 0) {
+        iniciarTemporizador();
       } else {
         detenerTemporizador();
       }
     });
 
-    // Procesamiento inmediato al tocar el botón
-    btnProcesar.addEventListener("click", () => {
-      ejecutarClasificacion();
-    });
+    btnProcesar.addEventListener("click", () => ejecutarClasificacion());
 
-    // Enter en teclado físico
     dictadoInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -571,7 +679,45 @@
       }
     });
 
-    // Cámara nativa
+    dynamicForm.addEventListener("input", () => {
+      refreshSummaryTable();
+    });
+
+    btnExportCsv.addEventListener("click", () => {
+      const inputs = dynamicForm.querySelectorAll("input[type='text']");
+      let csvContent = "Campo,Valor\n";
+      let count = 0;
+
+      inputs.forEach(input => {
+        const val = input.value.trim();
+        if (val !== "") {
+          const safeVal = `"${val.replace(/"/g, '""')}"`;
+          csvContent += `${input.id},${safeVal}\n`;
+          count++;
+        }
+      });
+
+      if (count === 0) {
+        alert("No hay ningún campo llenado para exportar.");
+        return;
+      }
+
+      const codPoste = document.getElementById("cod_activo_principal").value.trim() || "INSPECCION";
+      const fecha = new Date().toISOString().slice(0,10);
+      const filename = `${codPoste}_${fecha}.csv`;
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      statusText.innerText = `✓ Archivo '${filename}' descargado con éxito.`;
+    });
+
     btnPhoto.addEventListener("click", () => cameraInput.click());
     cameraInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
@@ -587,7 +733,7 @@
           photoContainer.appendChild(thumb);
           
           photoCounter.innerText = `(${photos.length})`;
-          statusText.innerText = `✓ Foto ${photos.length} almacenada en memoria.`;
+          statusText.innerText = `✓ Foto ${photos.length} almacenada.`;
         };
         reader.readAsDataURL(file);
       }
