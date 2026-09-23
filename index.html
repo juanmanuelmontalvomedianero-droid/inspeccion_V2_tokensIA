@@ -2,565 +2,546 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Inspección MT/BT - DMS Oficial</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.basic.min.js"></script>
-  <script type="module">
-    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0';
-    env.allowLocalModels = false;
-    window.pipeline = pipeline;
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inspección MT - Inferencia Multi-Campo</title>
   <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .card { background-color: #1e293b; border-radius: 12px; border: 1px solid #334155; }
-    select, input, textarea { background-color: #0f172a !important; color: #f8fafc !important; border: 1px solid #475569 !important; border-radius: 8px; }
+    :root {
+      --primary: #0056b3;
+      --success: #28a745;
+      --danger: #dc3545;
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --accent: #e7f1ff;
+      --border: #dbe2ea;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 10px;
+      color: #212529;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+    .panel {
+      background: var(--card);
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+    h2 {
+      margin: 0 0 10px 0;
+      color: var(--primary);
+      font-size: 18px;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #0f172a;
+      background: #f1f5f9;
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin: 14px 0 8px 0;
+      border-left: 4px solid var(--primary);
+    }
+    
+    /* Botones de acción */
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    button {
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: 0.2s;
+    }
+    .btn-init {
+      background: #343a40;
+      color: white;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    .btn-mic {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-mic.listening {
+      background: var(--danger);
+      animation: pulse 1.4s infinite;
+    }
+    .btn-cam {
+      background: var(--success);
+      color: white;
+    }
+    button:disabled {
+      background: #adb5bd;
+      cursor: not-allowed;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    /* Monitor en tiempo real multi-campo */
+    .rt-monitor {
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 10px;
+      border-radius: 8px;
+      border-left: 4px solid #38bdf8;
+      margin-top: 8px;
+    }
+    .rt-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+    .rt-tags-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .rt-item {
+      font-size: 13px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .badge-field {
+      background: #0284c7;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .badge-arrow { color: #38bdf8; }
+    .badge-value {
+      background: #334155;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* Edición manual rápida */
+    .manual-edit-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 13px;
+      background: #fff;
+    }
+    .manual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    /* Galería de fotos */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .photo-thumb {
+      position: relative;
+      width: 100%;
+      padding-top: 100%;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #ccc;
+    }
+    .photo-thumb img {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+    }
+
+    /* Campos de formulario */
+    .form-group {
+      margin-bottom: 6px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: background 0.3s ease;
+    }
+    .form-group.updated {
+      background: var(--accent);
+      border-left: 3px solid var(--primary);
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 2px;
+    }
+    .status {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 4px;
+    }
   </style>
-</head>
-<body class="p-4 max-w-lg mx-auto pb-24">
 
-  <div class="mb-4 text-center">
-    <h1 class="text-2xl font-bold text-sky-400">⚡ Inspección MT (Matriz DMS)</h1>
-    <div class="flex justify-center gap-2 mt-1">
-      <span class="text-[10px] bg-slate-800 text-teal-400 px-2 py-0.5 rounded border border-teal-800">Capa 1: Regex ✓</span>
-      <span class="text-[10px] bg-slate-800 text-sky-400 px-2 py-0.5 rounded border border-sky-800">Capa 2: Fuzzy (0.30) ✓</span>
-      <span id="badge-ia" class="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-amber-800">Capa 3: Semántica IA ✓</span>
-    </div>
-  </div>
-
-  <div class="card p-4 mb-4">
-    <div class="grid grid-cols-2 gap-3 mb-3">
-      <div>
-        <label class="text-xs font-semibold text-slate-400">Cód. Activo:</label>
-        <input type="text" id="cod_activo" placeholder="Ej: P-10243" class="w-full p-2 text-sm mt-1">
-      </div>
-      <div>
-        <label class="text-xs font-semibold text-slate-400">Responsable:</label>
-        <input type="text" id="responsable" value="INSPECTOR" class="w-full p-2 text-sm mt-1">
-      </div>
-    </div>
-    <button id="btn-iniciar" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition">
-      ⏱️ Iniciar Inspección
-    </button>
-    <p id="lbl-timestamp" class="text-xs text-slate-400 text-center mt-2">Timestamp: --:--:--</p>
-  </div>
-
-  <div class="card p-4 mb-4">
-    <label class="text-xs font-semibold text-slate-400">Dictado por Voz:</label>
-    <textarea id="txt-dictado" rows="3" class="w-full p-2 text-sm mt-1" placeholder="Ej: 'Poste MT concreto 13m... recorrido predio edificaciones... tip 1034 si riesgo, sin riesgo en comunicaciones, no tiene cubierta de proteccion'"></textarea>
-    <button id="btn-procesar" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg text-sm mt-2 transition">
-      ⚡ Procesar Dictado
-    </button>
-  </div>
-
-  <div class="card p-4 mb-4">
-    <div class="flex justify-between items-center border-b border-slate-700 pb-2 mb-2">
-      <h2 class="text-sm font-bold text-sky-400">📋 Campos Registrados (Protegidos)</h2>
-      <span class="text-[10px] text-slate-400">Toca ✏️ para editar</span>
-    </div>
-    <div id="monitor-valores" class="space-y-2 text-xs max-h-72 overflow-y-auto">
-      <p class="text-slate-500 italic">No hay valores detectados aún.</p>
-    </div>
-  </div>
-
-  <div class="space-y-3">
-    <button id="btn-guardar" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-lg text-sm transition">
-      💾 Guardar Estructura Completa
-    </button>
-    <div class="flex gap-2">
-      <button id="btn-descargar-excel" class="w-1/2 bg-teal-700 hover:bg-teal-800 text-white font-semibold py-2 px-3 rounded-lg text-xs transition">
-        📥 Descargar Excel (.xlsx)
-      </button>
-      <button id="btn-descargar-csv" class="w-1/2 bg-slate-700 hover:bg-slate-800 text-white font-semibold py-2 px-3 rounded-lg text-xs transition">
-        📥 Descargar CSV (.csv)
-      </button>
-    </div>
-    <p id="lbl-conteo" class="text-xs text-center text-slate-400">Estructuras en memoria: 0</p>
-  </div>
-
+  <!-- WebLLM para inferencia local en el navegador -->
   <script type="module">
-    const ESQUEMA_DESACOPLADO = {
-      "poste": {
-        titulo: "Poste, Fuste y Fundación",
-        campos: {
-          nivel_tension: {
-            label: "NIVEL DE TENSIÓN",
-            ancla: ["tension", "red", "poste", "linea", "nivel"],
-            opciones: ["MT", "BT"],
-            aliases: ["media tension", "baja tension", "mt", "bt", "red mt", "red bt", "primaria", "secundaria"]
-          },
-          tipo_poste: {
-            label: "TIPO DE POSTE",
-            ancla: ["poste", "fuste", "estructura", "material"],
-            opciones: ["CONCRETO", "MADERA", "METAL", "PRFV"],
-            aliases: ["concreto", "madera", "metal", "cemento", "cac", "fierro"]
-          },
-          altura_poste: {
-            label: "ALTURA (M)",
-            ancla: ["altura", "mide", "metros", "poste", "de 13", "de 11", "de 15", "de 9", "de 8"],
-            opciones: ["11", "13", "15", "9", "8"],
-            aliases: ["11", "13", "15", "9", "8"]
-          },
-          corrosion_cuerpo: {
-            label: "ESTADO CUERPO POSTE",
-            ancla: ["cuerpo", "fuste", "media caña", "tronco"],
-            opciones: ["Buen Estado", "Rajaduras", "Descascarado Severo"],
-            aliases: ["cuerpo buen estado", "cuerpo rajado", "rajaduras cuerpo", "fisura cuerpo", "cascaron"]
-          },
-          corrosion_base: {
-            label: "CORROSIÓN BASE POSTE",
-            ancla: ["base", "patas", "arranque", "pie"],
-            opciones: ["Conforme", "A (Muy Mal Estado)", "B1 (Pérdida Sección)", "B (Concreto Desprendido)", "CV (Encamisado/Reforzado)"],
-            aliases: ["base conforme", "base muy mal estado", "patas comidas", "base carcomida", "base desprendida", "base encamisada", "fierro al aire", "dado de refuerzo"]
-          },
-          zocalo: {
-            label: "ZÓCALO",
-            ancla: ["zocalo", "collarin"],
-            opciones: ["SI", "NO"],
-            aliases: ["zocalo", "collarin"]
-          },
-          cimentado: {
-            label: "CIMENTADO",
-            ancla: ["cimentad", "cimentacion", "dado concreto", "fundacion"],
-            opciones: ["SI", "NO"],
-            aliases: ["cimentado", "cimentacion", "dado"]
-          },
-          estado_inclinacion: {
-            label: "INCLINACIÓN",
-            ancla: ["inclinad", "plomo", "desplome", "grados", "caida"],
-            opciones: ["No Presenta", "Menor a 5°", "Mayor a 5°"],
-            aliases: ["no presenta inclinacion", "aplomado", "menor a 5 grados", "mayor a 5 grados", "inclinado", "inclinacion"]
-          }
-        }
-      },
-      "cruceta": {
-        titulo: "Ménsulas / Crucetas",
-        campos: {
-          tipo_mensula: {
-            label: "TIPO CRUCETA",
-            ancla: ["cruceta", "mensula", "armadura"],
-            opciones: ["CONCRETO", "MADERA"],
-            aliases: ["cruceta concreto", "cruceta madera", "mensula concreto", "mensula madera"]
-          },
-          estado_cruceta: {
-            label: "ESTADO CRUCETA",
-            ancla: ["cruceta", "mensula"],
-            opciones: ["Buen Estado", "Rajada/Desprendimiento", "Apolillada/Revirada", "Pernos Oxidados"],
-            aliases: ["cruceta buen estado", "cruceta rajada", "cruceta desprendimiento", "cruceta apolillada", "cruceta torcida", "pernos soporte oxidados", "pernos podridos"]
-          }
-        }
-      },
-      "aisladores": {
-        titulo: "Aisladores MT",
-        campos: {
-          tipo_aislador: {
-            label: "TIPO AISLADOR",
-            ancla: ["aislador", "aisladores"],
-            opciones: ["POLIMERICO", "PORCELANA"],
-            aliases: ["aislador polimerico", "aislador porcelana", "aislador sintetico", "aislador goma", "aislador loza", "campana"]
-          },
-          condicion_aislador: {
-            label: "CONDICIÓN AISLADOR",
-            ancla: ["aislador", "aisladores", "flameo", "fogueado", "chispazo"],
-            opciones: ["Buen Estado", "Fogueado (Alto Tracking)", "Alta Polución/Salitre", "Dañado/Roto"],
-            aliases: ["aislador buen estado", "fogueado", "flameado", "chisporroteado", "chispazo", "aislador quemado", "embarrado", "salitre", "aislador roto"]
-          }
-        }
-      },
-      "distancias_seguridad": {
-        titulo: "Evaluación de las distancias de seguridad",
-        campos: {
-          ubicacion_recorrido_red: {
-            label: "UBICACIÓN O RECORRIDO DE LA RED MT",
-            ancla: ["recorrido", "ubicacion", "sobre", "pasa por"],
-            opciones: ["PREDIO-CASA-EDIFICACIONES", "CABLE DE TELECOMUNICACIONES", "CARTELES-LETREROS", "CONDUCTOR BT"],
-            aliases: ["predio casa edificaciones", "casa", "edificaciones", "cable de telecomunicaciones", "telecomunicaciones", "carteles letreros", "carteles", "letreros", "conductor bt"]
-          },
-          edificaciones_debajo_red: {
-            label: "EDIFICACIONES O PROPIEDADES DEBAJO DE LA RED MT",
-            ancla: ["debajo", "bajo la red", "propiedad debajo", "edificaciones debajo"],
-            opciones: ["SI-RIESGO", "NO"],
-            aliases: ["debajo de la red", "casa debajo", "edificacion debajo", "propiedad debajo"]
-          },
-          dms_edificacion_tip1034: {
-            label: "RED DE EMT A EDIFICACIÓN DH<2.50 Y DV<4.00 (TIP 1034, 2024)",
-            ancla: ["edificacion", "fachada", "balcon", "ventana", "tip 1034", "1034", "techo"],
-            opciones: ["SI-RIESGO", "NO"],
-            aliases: ["dms edificacion", "fachada cerca", "balcon cerca", "ventana cerca", "tip 1034", "dms casa", "dh menor a dos y medio"]
-          },
-          dms_comunicaciones_tip1036: {
-            label: "RED DE EMT A COMUNICACIONES DH<1.50 DV<1.80 (TIP 1036, 2026)",
-            ancla: ["comunicaciones", "telecomunicaciones", "telefono", "fibra", "tip 1036", "1036"],
-            opciones: ["SI-RIESGO", "NO"],
-            aliases: ["dms comunicaciones", "cable telefono cerca", "fibra cerca", "tip 1036", "comunicaciones cerca"]
-          },
-          dms_cartel_tip5016: {
-            label: "RED DE EMT A CARTEL DH<2.50 DV<4.00 (TIP 5016)",
-            ancla: ["cartel", "letrero", "panel", "publicidad", "tip 5016", "5016"],
-            opciones: ["SI-RIESGO", "NO"],
-            aliases: ["dms cartel", "cartel cerca", "letrero cerca", "panel publicitario", "tip 5016"]
-          },
-          dms_red_bt_tip5032: {
-            label: "RED DE EMT A RED BT DH<1.50 DV<1.20 (TIP 5032)",
-            ancla: ["red bt", "baja tension", "conductor bt", "linea bt"],
-            opciones: ["SI-RIESGO", "NO"],
-            aliases: ["dms red bt", "red baja tension cerca", "cable bt cerca", "cruce con bt", "tip 5032"]
-          },
-          dms_grifo: {
-            label: "EMT (SED) A GRIFO DH<7.60",
-            ancla: ["grifo", "gasocentro", "estacion de servicio", "combustible"],
-            opciones: ["SI-RIESGO", "NO"],
-            aliases: ["dms grifo", "grifo cerca", "gasocentro", "tanque de combustible", "grifo a menos de 7.60"]
-          },
-          dms_poste_ap_bt: {
-            label: "RED DE EMT A POSTE AP-BT DH<1.50 DV<1.40 (TIP 5032)",
-            ancla: ["poste ap", "poste bt", "pastoral", "alumbrado"],
-            opciones: ["SI-RIESGO", "NO"],
-            aliases: ["dms poste ap", "poste alumbrado cerca", "pastoral cerca", "poste bt cerca"]
-          },
-          cubierta_proteccion_dms: {
-            label: "CUBIERTA DE PROTECCIÓN PARA DMS",
-            ancla: ["cubierta", "proteccion", "manguera", "forro"],
-            opciones: ["NO TIENE", "SI TIENE"],
-            aliases: ["cubierta de proteccion", "manguera aislante", "forro protector", "cubierta dms", "proteccion dms"]
-          }
-        }
-      },
-      "retenida": {
-        titulo: "Retenida MT",
-        campos: {
-          estado_retenida: {
-            label: "RETENIDA MT",
-            ancla: ["retenida", "tirante", "viento"],
-            opciones: ["No Requiere", "Buen Estado", "Destemplada/Floja", "Requiere Mantenimiento/Cambio"],
-            aliases: ["no requiere retenida", "sin retenida", "no tiene retenida", "retenida buen estado", "tirante flojo", "retenida destemplada", "cable suelto", "panza", "nuez rota", "suelta", "floja", "retenida suelta", "cable flojo", "tirante suelto"]
-          }
-        }
-      }
+    import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+    // CATÁLOGO COMPLETO SEGÚN schema_mt.py
+    const SCHEMA_MT = {
+      "Datos Principales": [
+        "sst", "set", "nro_alimentador", "tipo_nodo_inicial", "nro_nodo_inicial",
+        "tipo_nodo_final", "nro_nodo_final", "tipo_activo_principal", "cod_activo_principal",
+        "tipo_activo_referencia", "cod_activo_referencia", "incluido_en_bd", "posibilidad_inspeccion_poste"
+      ],
+      "Características Generales": [
+        "marca", "tipo_poste", "altura_poste", "rotulado_estructura", "etiquetado", "clase_armado", "propiedad_red"
+      ],
+      "Corrosión e Inclinación": [
+        "estado_inclinacion", "corrosion_base", "corrosion_cuerpo_cac", "corrosion_cuerpo_madera", "zocalo", "cimentado", "nivel_empotramiento"
+      ],
+      "Red Aérea MT": [
+        "tipo_conductor_emt", "estado_red_aerea", "cruce_via", "objetos_extranos", "acercamiento_arboles", "ubicacion_arboles"
+      ],
+      "Ubicación e Impactos": [
+        "ubicacion_poste", "tipo_suelo", "expuesto_impacto", "cuenta_proteccion", "estado_riel_bloque"
+      ],
+      "Conectores y Grapas": [
+        "estado_conectores", "estado_grapas"
+      ],
+      "Aisladores": [
+        "existen_aisladores", "tipo_aislador", "contaminacion_aislador", "descarga_aislador", "varilla_soporte", "estado_general_aislador"
+      ],
+      "Ménsulas y Crucetas": [
+        "existen_mensulas", "tipo_mensula", "estado_cruceta_cac", "estado_cruceta_madera", "ferreteria_soporte", "estado_diagonales"
+      ],
+      "Plataforma y Palomilla": [
+        "existe_plataforma", "tipo_plataforma", "estado_plataforma", "tipo_palomilla", "estado_palomilla"
+      ],
+      "Seccionadores": [
+        "existe_seccionador", "estado_seccionador", "contaminacion_seccionador", "descarga_seccionador", "mensula_seccionador"
+      ],
+      "Terminales": [
+        "existen_terminales", "tipo_terminales", "estado_terminal", "contaminacion_terminal", "descarga_terminal"
+      ],
+      "Subidas y Bajadas": [
+        "existe_subidas_bajadas", "tipo_proteccion_cable", "estado_proteccion_cable"
+      ],
+      "Tableros y Comunicaciones": [
+        "tipo_tablero", "tamano_tablero", "estado_general_tablero", "corrosion_tablero", "ferreteria_tablero", "tipo_proteccion_com_bt", "estado_proteccion_com_bt"
+      ],
+      "Puesta a Tierra": [
+        "conexion_tierra_mt", "rotulado_pat", "estado_pozo_mt"
+      ],
+      "Retenida MT": [
+        "existe_retenida", "tipo_retenida", "aislador_retenida", "estado_general_retenida", "corrosion_retenida", "corrosion_barra_ojo", "canaleta_retenida", "proteccion_impacto_retenida", "estado_bloque_retenida"
+      ],
+      "Uso Compartido": [
+        "uso_compartido", "pastoral_bt", "redes_bt", "cables_telecom", "equipos_terceros"
+      ],
+      "Zona": [
+        "zona", "afluencia_terceros", "accesibilidad_grua"
+      ],
+      "Evaluación del Equipo": [
+        "perdida_aceite", "corrosion_equipo", "anclaje_plataforma", "ferreteria_soporte_equipo", "nidos_equipo", "acercamiento_arboles_equipo", "ubicacion_arboles_equipo", "soporte_cable_com", "altura_suelo_base"
+      ],
+      "Distancias de Seguridad (DMS)": [
+        "recorrido_red_mt", "edificaciones_debajo", "dms_edificacion", "dms_comunicaciones", "dms_cartel", "dms_red_bt", "dms_grifo", "dms_poste_ap_bt", "cubierta_proteccion"
+      ],
+      "Cierre Administrativo": [
+        "empresa", "actividad_origen", "observaciones", "revisado_tecsur"
+      ]
     };
 
-    let extractor = null;
-    let embeddingsCatalogo = {};
-    let fuseInstancia = null;
-    let registrosSesion = [];
-    let registroEnProceso = {};
-    let timestampInicio = "";
-    let contadorActividad = 0;
+    const ALL_FIELDS = Object.values(SCHEMA_MT).flat();
 
-    const NUMEROS = { "cero": 0, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10, "once": 11, "doce": 12, "trece": 13, "quince": 15 };
+    // PROMPT CON REGLA ESTRICTA DE INFERENCIA MULTI-CAMPO
+    const SYSTEM_PROMPT = `Eres clasificador técnico para inspección MT.
+Extrae e infiere TODOS los campos que apliquen de una frase dictada.
+REGLA CLAVE DE INFERENCIA:
+Si se reporta condición/anomalía de un elemento (retenida, seccionador, aislador, mensula, etc.), infiere también el campo de existencia con "SI".
 
-    function normalizarTexto(t) {
-      let texto = t.toLowerCase();
-      for (const [pal, num] of Object.entries(NUMEROS)) {
-        texto = texto.replace(new RegExp(`\\b${pal}\\b`, 'gi'), num.toString());
-      }
-      return texto;
-    }
+Responde ÚNICAMENTE una lista JSON con los campos actualizados:
+[{"campo":"<campo>","valor":"<valor>"}]
 
-    function inicializarFuzzy() {
-      const items = [];
-      for (const [secKey, sec] of Object.entries(ESQUEMA_DESACOPLADO)) {
-        for (const [cKey, cfg] of Object.entries(sec.campos)) {
-          cfg.opciones.forEach(opc => items.push({ secKey, cKey, target: opc, term: opc.toLowerCase() }));
-          cfg.aliases.forEach(al => items.push({ secKey, cKey, target: null, term: al.toLowerCase() }));
-        }
-      }
-      fuseInstancia = new Fuse(items, { keys: ['term'], threshold: 0.30, ignoreLocation: true });
-    }
-    inicializarFuzzy();
+CAMPOS PERMITIDOS:
+${ALL_FIELDS.join(", ")}
 
-    async function inicializarIA() {
-      try {
-        extractor = await window.pipeline('feature-extraction', 'Xenova/paraphrase-multilingual-MiniLM-L12-v2');
-        document.getElementById('badge-ia').innerText = "Capa 3: Semántica IA (0.50) ✓";
-        document.getElementById('badge-ia').className = "text-[10px] bg-slate-800 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800";
+EJEMPLO:
+Usuario: "la retenida está suelta"
+Asistente: [{"campo":"existe_retenida","valor":"SI"},{"campo":"estado_general_retenida","valor":"DESTEMPLADA"}]`;
 
-        for (const [secKey, sec] of Object.entries(ESQUEMA_DESACOPLADO)) {
-          for (const [cKey, cfg] of Object.entries(sec.campos)) {
-            embeddingsCatalogo[`${secKey}.${cKey}`] = [];
-            for (const opc of cfg.opciones) {
-              const contextoCompleto = `${cfg.label}: ${opc}`;
-              const out = await extractor(contextoCompleto, { pooling: 'mean', normalize: true });
-              embeddingsCatalogo[`${secKey}.${cKey}`].push({ opcion: opc, vector: Array.from(out.data) });
-            }
-          }
-        }
-      } catch (e) {
-        document.getElementById('badge-ia').innerText = "Capa 3: Desactivada";
-      }
-    }
-    inicializarIA();
+    // Renderizar dinámicamente el formulario completo y el selector
+    const dynamicForm = document.getElementById("dynamicForm");
+    const quickSelectField = document.getElementById("quickSelectField");
 
-    function cosSim(a, b) {
-      let d = 0, na = 0, nb = 0;
-      for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
-      return d / (Math.sqrt(na) * Math.sqrt(nb));
-    }
+    Object.entries(SCHEMA_MT).forEach(([seccion, campos]) => {
+      const secHeader = document.createElement("div");
+      secHeader.className = "section-title";
+      secHeader.innerText = seccion;
+      dynamicForm.appendChild(secHeader);
 
-    function dividirFragmentos(texto) {
-      return texto
-        .replace(/\.\.\./g, ',')
-        .replace(/;/g, ',')
-        .replace(/\b(y además|además|pero|cuenta con|no cuenta)\b/gi, ',')
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s.length > 1);
-    }
+      const optGroup = document.createElement("optgroup");
+      optGroup.label = seccion;
 
-    async function procesarCalibrado(textoCrudo) {
-      const extracciones = {};
-      const texto = normalizarTexto(textoCrudo);
+      campos.forEach(campo => {
+        const fGroup = document.createElement("div");
+        fGroup.className = "form-group";
+        fGroup.innerHTML = `
+          <label>${campo.toUpperCase().replace(/_/g, " ")}</label>
+          <input type="text" id="${campo}" placeholder="Sin registrar">
+        `;
+        dynamicForm.appendChild(fGroup);
 
-      // ==========================================
-      // FASE 1: EVALUACIÓN DETERMINISTA GLOBAL (Capa 1)
-      // ==========================================
-
-      // Nivel de Tensión
-      const idNivel = "poste.nivel_tension";
-      if (!registroEnProceso[idNivel]) {
-        if (/\b(media tension|mt|primaria)\b/i.test(texto)) extracciones[idNivel] = "MT";
-        else if (/\b(baja tension|bt|secundaria)\b/i.test(texto)) extracciones[idNivel] = "BT";
-      }
-
-      // Inclinación
-      const idInc = "poste.estado_inclinacion";
-      if (!registroEnProceso[idInc]) {
-        const mGrados = texto.match(/(\d+)\s*(?:°|grados?)/i);
-        if (mGrados) {
-          const g = parseInt(mGrados[1]);
-          extracciones[idInc] = g > 5 ? "Mayor a 5°" : (g > 0 ? "Menor a 5°" : "No Presenta");
-        } else if (/\b(sin inclinacion|al plomo|a plomo|bien aplomado|no presenta inclinacion)\b/i.test(texto)) {
-          extracciones[idInc] = "No Presenta";
-        } else if (/\b(inclinad|desplomad|ladead)\b/i.test(texto)) {
-          if (/\b(mayor|bastante|muy|peligro)\b/i.test(texto)) extracciones[idInc] = "Mayor a 5°";
-          else if (/\b(menor|poco|leve|ligera)\b/i.test(texto)) extracciones[idInc] = "Menor a 5°";
-        }
-      }
-
-      // Altura del Poste
-      const idAlt = "poste.altura_poste";
-      if (!registroEnProceso[idAlt]) {
-        const mAlt = texto.match(/\b(11|13|15|9|8)\b\s*(?:m|mts|metros)?/i);
-        if (mAlt && (mAlt[0].includes("m") || /\b(altura|poste|mide|tamano|largo|de 13|de 11|de 15|de 9|de 8)\b/i.test(texto))) {
-          extracciones[idAlt] = mAlt[1];
-        }
-      }
-
-      // Material del Poste
-      const idTipoPoste = "poste.tipo_poste";
-      if (!registroEnProceso[idTipoPoste]) {
-        if (/\b(concreto|cemento|cac)\b/i.test(texto) && !/\bcruceta\b/i.test(texto)) extracciones[idTipoPoste] = "CONCRETO";
-        else if (/\bmadera\b/i.test(texto) && !/\bcruceta\b/i.test(texto)) extracciones[idTipoPoste] = "MADERA";
-        else if (/\b(metal|fierro|metalico)\b/i.test(texto)) extracciones[idTipoPoste] = "METAL";
-        else if (/\b(prfv|fibra)\b/i.test(texto)) extracciones[idTipoPoste] = "PRFV";
-      }
-
-      // Retenida Ausente
-      const idRet = "retenida.estado_retenida";
-      if (!registroEnProceso[idRet] && /\b(sin retenida|no tiene retenida|no requiere retenida|sin tirante)\b/i.test(texto)) {
-        extracciones[idRet] = "No Requiere";
-      }
-
-      // ==========================================
-      // FASE 2: EVALUACIÓN POR FRAGMENTOS (Capa 2 y Capa 3)
-      // ==========================================
-      const fragmentos = dividirFragmentos(texto);
-
-      for (const frag of fragmentos) {
-        const fragLow = frag.toLowerCase();
-
-        for (const [secKey, sec] of Object.entries(ESQUEMA_DESACOPLADO)) {
-          for (const [cKey, cfg] of Object.entries(sec.campos)) {
-            const idCampo = `${secKey}.${cKey}`;
-
-            if (registroEnProceso[idCampo] || extracciones[idCampo]) continue;
-
-            const coincideAncla = cfg.ancla.some(a => new RegExp(`\\b${a}`, 'i').test(fragLow));
-            const coincideAlias = cfg.aliases.some(al => new RegExp(`\\b${al}`, 'i').test(fragLow));
-
-            if (!coincideAncla && !coincideAlias) continue;
-
-            // Manejo de opciones SI-RIESGO / NO para la Matriz DMS
-            if (JSON.stringify(cfg.opciones) === JSON.stringify(["SI-RIESGO", "NO"])) {
-              const esRiesgo = /\b(si|riesgo|infraccion|vulnera|vulnerada|peligro|menos de|cerca)\b/i.test(fragLow);
-              const esSinRiesgo = /\b(no|sin riesgo|conforme|no presenta|lejos|cumple)\b/i.test(fragLow);
-              if (esSinRiesgo) {
-                extracciones[idCampo] = "NO";
-              } else if (esRiesgo) {
-                extracciones[idCampo] = "SI-RIESGO";
-              }
-              continue;
-            }
-
-            // Manejo de binarios genéricos SI / NO (zócalo, cimentación)
-            if (JSON.stringify(cfg.opciones) === JSON.stringify(["SI", "NO"])) {
-              const tieneNegacion = /\b(sin|no|falta|cero|sin zocalo|no tiene|sin cimentacion)\b/i.test(fragLow);
-              extracciones[idCampo] = tieneNegacion ? "NO" : "SI";
-              continue;
-            }
-
-            // Manejo específico de Cubierta de Protección (NO TIENE / SI TIENE)
-            if (JSON.stringify(cfg.opciones) === JSON.stringify(["NO TIENE", "SI TIENE"])) {
-              const tieneNo = /\b(no tiene|sin cubierta|no cuenta|falta cubierta)\b/i.test(fragLow);
-              extracciones[idCampo] = tieneNo ? "NO TIENE" : "SI TIENE";
-              continue;
-            }
-
-            // Capa 2: Fuzzy Matching tolerante (0.30)
-            if (fuseInstancia) {
-              const res = fuseInstancia.search(fragLow);
-              const m = res.find(r => r.item.secKey === secKey && r.item.cKey === cKey);
-              if (m && m.score <= 0.30 && m.item.target) {
-                extracciones[idCampo] = m.item.target;
-                continue;
-              }
-            }
-
-            // Capa 3: Semántica con umbral al 50% (0.50)
-            if (extractor && embeddingsCatalogo[idCampo]) {
-              const out = await extractor(frag, { pooling: 'mean', normalize: true });
-              const vUser = Array.from(out.data);
-
-              let bestScore = 0;
-              let bestOp = null;
-              for (const item of embeddingsCatalogo[idCampo]) {
-                const s = cosSim(vUser, item.vector);
-                if (s > bestScore) {
-                  bestScore = s;
-                  bestOp = item.opcion;
-                }
-              }
-
-              if (bestScore >= 0.50) {
-                extracciones[idCampo] = bestOp;
-              }
-            }
-          }
-        }
-      }
-
-      return extracciones;
-    }
-
-    function renderMonitor() {
-      const cont = document.getElementById('monitor-valores');
-      cont.innerHTML = "";
-      let tieneValores = false;
-
-      for (const [secKey, sec] of Object.entries(ESQUEMA_DESACOPLADO)) {
-        for (const [cKey, cfg] of Object.entries(sec.campos)) {
-          const id = `${secKey}.${cKey}`;
-          if (registroEnProceso[id]) {
-            tieneValores = true;
-            const div = document.createElement('div');
-            div.className = "flex flex-col bg-slate-900 p-2 rounded border border-slate-700 gap-1";
-            div.id = `card-${id}`;
-            div.innerHTML = `
-              <div class="flex justify-between items-center">
-                <span class="text-slate-300 font-medium">${cfg.label}</span>
-                <div class="flex items-center gap-2">
-                  <span class="text-emerald-400 font-bold">${registroEnProceso[id]}</span>
-                  <button class="btn-editar bg-slate-700 hover:bg-slate-600 px-2 py-0.5 rounded text-sky-400" data-id="${id}">✏️</button>
-                  <button class="btn-borrar bg-slate-700 hover:bg-slate-600 px-2 py-0.5 rounded text-rose-400" data-id="${id}">🗑️</button>
-                </div>
-              </div>
-              <div id="editor-${id}" class="hidden mt-2 pt-2 border-t border-slate-800"></div>
-            `;
-            cont.appendChild(div);
-          }
-        }
-      }
-
-      if (!tieneValores) cont.innerHTML = '<p class="text-slate-500 italic">No hay valores detectados aún.</p>';
-
-      document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => abrirEditor(e.target.dataset.id)));
-      document.querySelectorAll('.btn-borrar').forEach(b => b.addEventListener('click', e => {
-        delete registroEnProceso[e.target.dataset.id];
-        renderMonitor();
-      }));
-    }
-
-    function abrirEditor(id) {
-      const [secKey, cKey] = id.split('.');
-      const cfg = ESQUEMA_DESACOPLADO[secKey].campos[cKey];
-      const div = document.getElementById(`editor-${id}`);
-      if (!div.classList.contains('hidden')) { div.classList.add('hidden'); return; }
-      div.classList.remove('hidden');
-      div.innerHTML = "";
-
-      const sel = document.createElement('select');
-      sel.className = "w-full p-1 text-xs mb-1";
-      cfg.opciones.forEach(op => {
-        const opt = document.createElement('option');
-        opt.value = op; opt.innerText = op;
-        if (op === registroEnProceso[id]) opt.selected = true;
-        sel.appendChild(opt);
+        const opt = document.createElement("option");
+        opt.value = campo;
+        opt.innerText = campo;
+        optGroup.appendChild(opt);
       });
-      const btn = document.createElement('button');
-      btn.className = "w-full bg-blue-600 text-white font-semibold py-1 rounded text-xs mt-1";
-      btn.innerText = "Confirmar Cambio";
-      btn.onclick = () => { registroEnProceso[id] = sel.value; renderMonitor(); };
-      div.appendChild(sel); div.appendChild(btn);
+      quickSelectField.appendChild(optGroup);
+    });
+
+    let engine = null;
+    const btnInit = document.getElementById("btnInit");
+    const btnMic = document.getElementById("btnMic");
+    const btnPhoto = document.getElementById("btnPhoto");
+    const cameraInput = document.getElementById("cameraInput");
+    const photoContainer = document.getElementById("photoContainer");
+    const photoCounter = document.getElementById("photoCounter");
+    const statusText = document.getElementById("statusText");
+
+    const rtTagsContainer = document.getElementById("rtTagsContainer");
+    const quickInputValue = document.getElementById("quickInputValue");
+
+    let photos = [];
+
+    // Función para actualizar campos y UI
+    function updateField(fieldName, val) {
+      const el = document.getElementById(fieldName);
+      if (el) {
+        el.value = val;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const parent = el.closest(".form-group");
+        parent.classList.add("updated");
+        setTimeout(() => parent.classList.remove("updated"), 2500);
+
+        quickSelectField.value = fieldName;
+        quickInputValue.value = val;
+      }
     }
 
-    document.getElementById('btn-iniciar').addEventListener('click', () => {
-      const d = new Date();
-      timestampInicio = d.toISOString().replace('T', ' ').substring(0, 19);
-      contadorActividad++;
-      document.getElementById('lbl-timestamp').innerText = `Timestamp: ${timestampInicio}`;
-      registroEnProceso = {};
-      renderMonitor();
-    });
-
-    document.getElementById('btn-procesar').addEventListener('click', async () => {
-      const txt = document.getElementById('txt-dictado').value;
-      if (!txt.trim()) return;
-      const res = await procesarCalibrado(txt);
-      Object.assign(registroEnProceso, res);
-      renderMonitor();
-      document.getElementById('txt-dictado').value = "";
-    });
-
-    document.getElementById('btn-guardar').addEventListener('click', () => {
-      const cod = document.getElementById('cod_activo').value.trim();
-      if (!cod) { alert("Ingrese el Código de Activo Principal."); return; }
-      const fila = {
-        "Fecha/Hora": timestampInicio || new Date().toISOString().replace('T', ' ').substring(0, 19),
-        "Cód. Activo": cod,
-        "Responsable": document.getElementById('responsable').value.trim()
-      };
-      for (const [secKey, sec] of Object.entries(ESQUEMA_DESACOPLADO)) {
-        for (const [cKey, cfg] of Object.entries(sec.campos)) {
-          fila[`${sec.titulo} - ${cfg.label}`] = registroEnProceso[`${secKey}.${cKey}`] || "";
-        }
+    // 1. INICIALIZAR IA LOCAL
+    btnInit.addEventListener("click", async () => {
+      btnInit.disabled = true;
+      try {
+        statusText.innerText = "Cargando modelo a caché local...";
+        engine = await webllm.CreateMLCEngine("SmolLM2-360M-Instruct-q4f16_1-MLC", {
+          initProgressCallback: (p) => { statusText.innerText = p.text; }
+        });
+        statusText.innerText = "✓ IA cargada y lista para operar offline.";
+        btnMic.disabled = false;
+        btnInit.style.display = "none";
+      } catch (err) {
+        statusText.innerText = "Error: " + err.message;
+        btnInit.disabled = false;
       }
-      registrosSesion.push(fila);
-      registroEnProceso = {};
-      document.getElementById('cod_activo').value = "";
-      document.getElementById('lbl-conteo').innerText = `Estructuras en memoria: ${registrosSesion.length}`;
-      renderMonitor();
-      alert(`Estructura ${cod} guardada con éxito.`);
     });
 
-    document.getElementById('btn-descargar-excel').addEventListener('click', () => {
-      if (registrosSesion.length === 0) return alert("No hay datos para exportar.");
-      const ws = XLSX.utils.json_to_sheet(registrosSesion);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Inspecciones");
-      XLSX.writeFile(wb, `inspeccion_${Date.now()}.xlsx`);
+    // 2. CONTROL DE CÁMARA
+    btnPhoto.addEventListener("click", () => cameraInput.click());
+    cameraInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64 = event.target.result;
+          photos.push(base64);
+          
+          const thumb = document.createElement("div");
+          thumb.className = "photo-thumb";
+          thumb.innerHTML = `<img src="${base64}" alt="Foto">`;
+          photoContainer.appendChild(thumb);
+          
+          photoCounter.innerText = `(${photos.length})`;
+          statusText.innerText = `✓ Foto ${photos.length} almacenada.`;
+        };
+        reader.readAsDataURL(file);
+      }
     });
 
-    document.getElementById('btn-descargar-csv').addEventListener('click', () => {
-      if (registrosSesion.length === 0) return alert("No hay datos para exportar.");
-      const ws = XLSX.utils.json_to_sheet(registrosSesion);
-      const csv = XLSX.utils.sheet_to_csv(ws);
-      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `inspeccion_${Date.now()}.csv`;
-      link.click();
+    // 3. MICRÓFONO Y CLASIFICACIÓN MULTI-CAMPO
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognizer = new SpeechRecognition();
+      recognizer.lang = "es-PE";
+      recognizer.continuous = false;
+      recognizer.interimResults = false;
+
+      btnMic.addEventListener("click", () => {
+        recognizer.start();
+        btnMic.classList.add("listening");
+        btnMic.innerHTML = "<span>🔴</span> Escuchando...";
+      });
+
+      recognizer.onresult = async (event) => {
+        btnMic.classList.remove("listening");
+        btnMic.innerHTML = "<span>🎤</span> Dictar";
+        const dictado = event.results[0][0].transcript;
+        statusText.innerText = "Clasificando inferencias...";
+
+        try {
+          const response = await engine.chat.completions.create({
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: dictado }
+            ],
+            temperature: 0.1,
+            max_tokens: 60
+          });
+
+          const raw = response.choices[0].message.content.trim();
+          const clean = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+          const lista = JSON.parse(clean);
+
+          // Renderizar lista en Monitor de Tiempo Real
+          rtTagsContainer.innerHTML = "";
+          
+          const items = Array.isArray(lista) ? lista : [lista];
+          items.forEach(item => {
+            updateField(item.campo, item.valor);
+
+            const div = document.createElement("div");
+            div.className = "rt-item";
+            div.innerHTML = `<span class="badge-field">${item.campo}</span><span class="badge-arrow">➔</span><span class="badge-value">${item.valor}</span>`;
+            rtTagsContainer.appendChild(div);
+          });
+
+          statusText.innerText = `✓ Se actualizaron ${items.length} campos.`;
+        } catch (e) {
+          console.error(e);
+          updateField("observaciones", dictado);
+          rtTagsContainer.innerHTML = `<div class="rt-item"><span class="badge-field">observaciones</span><span class="badge-arrow">➔</span><span class="badge-value">${dictado}</span></div>`;
+          statusText.innerText = "Derivado a observaciones.";
+        }
+      };
+
+      recognizer.onerror = () => {
+        btnMic.classList.remove("listening");
+        btnMic.innerHTML = "<span>🎤</span> Dictar";
+      };
+    }
+
+    // 4. EDICIÓN MANUAL DESDE PANEL SUPERIOR
+    quickSelectField.addEventListener("change", () => {
+      const target = document.getElementById(quickSelectField.value);
+      if (target) quickInputValue.value = target.value;
+    });
+
+    quickInputValue.addEventListener("input", (e) => {
+      const sel = quickSelectField.value;
+      const val = e.target.value;
+      const target = document.getElementById(sel);
+      if (target) {
+        target.value = val;
+        rtTagsContainer.innerHTML = `<div class="rt-item"><span class="badge-field">${sel}</span><span class="badge-arrow">➔</span><span class="badge-value">${val || "(vacío)"}</span></div>`;
+      }
+    });
+
+    // 5. EDICIÓN MANUAL DIRECTA EN FORMULARIO
+    dynamicForm.addEventListener("input", (e) => {
+      if (e.target.tagName === "INPUT") {
+        const sel = e.target.id;
+        const val = e.target.value;
+        quickSelectField.value = sel;
+        quickInputValue.value = val;
+        rtTagsContainer.innerHTML = `<div class="rt-item"><span class="badge-field">${sel}</span><span class="badge-arrow">➔</span><span class="badge-value">${val || "(vacío)"}</span></div>`;
+      }
     });
   </script>
+</head>
+<body>
+  <div class="container">
+    
+    <div class="panel">
+      <h2>Inspección de Red MT (TECSUR/LDS)</h2>
+      
+      <button id="btnInit" class="btn-init">Inicializar Motor de IA</button>
+      
+      <div class="action-grid">
+        <button id="btnMic" class="btn-mic" disabled>
+          <span>🎤</span> Dictar
+        </button>
+        <button id="btnPhoto" class="btn-cam">
+          <span>📷</span> Tomar Foto
+        </button>
+      </div>
+
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+
+      <!-- MONITOR EN TIEMPO REAL MULTI-CAMPO -->
+      <div class="rt-monitor">
+        <div class="rt-title">En tiempo real (Última inferencia)</div>
+        <div id="rtTagsContainer" class="rt-tags-container">
+          <div class="rt-item">
+            <span class="badge-field">esperando_dictado</span>
+            <span class="badge-arrow">➔</span>
+            <span class="badge-value">sin datos</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- EDICIÓN MANUAL RÁPIDA -->
+      <div class="manual-edit-box">
+        <label style="color:#0056b3; font-weight:bold;">Modificar campo manualmente:</label>
+        <div class="manual-grid">
+          <select id="quickSelectField"></select>
+          <input type="text" id="quickInputValue" placeholder="Escribe el valor...">
+        </div>
+      </div>
+
+      <div id="statusText" class="status">Pulsa "Inicializar Motor" para comenzar.</div>
+
+      <!-- GALERÍA DE FOTOS -->
+      <h4 style="margin: 8px 0 2px 0; font-size: 11px; color: #555;">
+        Fotos en sesión <span id="photoCounter">(0)</span>
+      </h4>
+      <div id="photoContainer" class="photo-grid"></div>
+    </div>
+
+    <!-- FORMULARIO COMPLETO RENDERIZADO DESDE EL ESQUEMA -->
+    <div class="panel">
+      <h3 style="margin-top:0; color:#0056b3;">Catálogo de Inspección Completo</h3>
+      <div id="dynamicForm"></div>
+    </div>
+
+  </div>
 </body>
 </html>
