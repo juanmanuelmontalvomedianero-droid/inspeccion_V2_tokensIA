@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inspección MT - Inferencia Multi-Campo</title>
+  <title>Inspección MT - TECSUR / LDS</title>
   <style>
     :root {
       --primary: #0056b3;
       --success: #28a745;
-      --danger: #dc3545;
+      --warning: #e0a800;
       --bg: #f0f2f5;
       --card: #ffffff;
       --accent: #e7f1ff;
@@ -27,7 +27,7 @@
     }
     .panel {
       background: var(--card);
-      padding: 12px;
+      padding: 14px;
       border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.06);
       margin-bottom: 12px;
@@ -48,13 +48,52 @@
       margin: 14px 0 8px 0;
       border-left: 4px solid var(--primary);
     }
-    
-    /* Botones de acción */
-    .action-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
+
+    /* Caja de texto y temporizador */
+    .input-box-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       margin-bottom: 8px;
+    }
+    textarea {
+      width: 100%;
+      height: 70px;
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 15px;
+      font-family: inherit;
+      resize: none;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(0,86,179,0.15);
+    }
+
+    /* Barra visual de cuenta regresiva de 10s */
+    .timer-bar-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+    .timer-badge {
+      font-weight: bold;
+      color: var(--primary);
+    }
+    .timer-badge.active {
+      color: var(--warning);
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 8px;
     }
     button {
       border: none;
@@ -69,36 +108,16 @@
       gap: 6px;
       transition: 0.2s;
     }
-    .btn-init {
-      background: #343a40;
-      color: white;
-      width: 100%;
-      margin-bottom: 8px;
-    }
-    .btn-mic {
+    .btn-process {
       background: var(--primary);
       color: white;
-    }
-    .btn-mic.listening {
-      background: var(--danger);
-      animation: pulse 1.4s infinite;
     }
     .btn-cam {
       background: var(--success);
       color: white;
     }
-    button:disabled {
-      background: #adb5bd;
-      cursor: not-allowed;
-    }
 
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
-    }
-
-    /* Monitor en tiempo real multi-campo */
+    /* Monitor en tiempo real */
     .rt-monitor {
       background: #1e293b;
       color: #f8fafc;
@@ -142,31 +161,7 @@
       font-size: 12px;
     }
 
-    /* Edición manual rápida */
-    .manual-edit-box {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
-      margin-top: 8px;
-    }
-    select, input[type="text"] {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ced4da;
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 13px;
-      background: #fff;
-    }
-    .manual-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-top: 6px;
-    }
-
-    /* Galería de fotos */
+    /* Galería */
     .photo-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
@@ -186,7 +181,7 @@
       top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
     }
 
-    /* Campos de formulario */
+    /* Formulario */
     .form-group {
       margin-bottom: 6px;
       padding: 4px 6px;
@@ -204,18 +199,79 @@
       color: #475569;
       margin-bottom: 2px;
     }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 13px;
+    }
     .status {
       font-size: 11px;
       color: #64748b;
       margin-top: 4px;
     }
   </style>
+</head>
+<body>
+  <div class="container">
+    
+    <div class="panel">
+      <h2>Inspección de Red MT (TECSUR/LDS)</h2>
+      
+      <!-- Entrada con dictado nativo -->
+      <div class="input-box-container">
+        <textarea id="dictadoInput" placeholder="Toca aquí y usa el micrófono del teclado. Se procesará tras 10s de pausa o al pulsar el botón..."></textarea>
+        
+        <div class="timer-bar-container">
+          <span>Auto-procesamiento en pausa:</span>
+          <span id="countdownBadge" class="timer-badge">Inactivo</span>
+        </div>
 
-  <!-- WebLLM para inferencia local en el navegador -->
-  <script type="module">
-    import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+        <div class="btn-grid">
+          <button id="btnProcesar" class="btn-process">
+            <span>⚡</span> Clasificar Texto
+          </button>
+          <button id="btnPhoto" class="btn-cam">
+            <span>📷</span> Foto
+          </button>
+        </div>
+      </div>
 
-    // CATÁLOGO COMPLETO SEGÚN schema_mt.py
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+
+      <!-- Monitor de campos clasificados -->
+      <div class="rt-monitor">
+        <div class="rt-title">En tiempo real (Última clasificación)</div>
+        <div id="rtTagsContainer" class="rt-tags-container">
+          <div class="rt-item">
+            <span class="badge-field">esperando_ingreso</span>
+            <span class="badge-arrow">➔</span>
+            <span class="badge-value">sin datos</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="statusText" class="status">Listo para recibir dictado o fotos.</div>
+
+      <!-- Galería de fotos -->
+      <h4 style="margin: 8px 0 2px 0; font-size: 11px; color: #555;">
+        Fotos en sesión <span id="photoCounter">(0)</span>
+      </h4>
+      <div id="photoContainer" class="photo-grid"></div>
+    </div>
+
+    <!-- Formulario completo -->
+    <div class="panel">
+      <h3 style="margin-top:0; color:#0056b3;">Catálogo de Inspección Completo</h3>
+      <div id="dynamicForm"></div>
+    </div>
+
+  </div>
+
+  <script>
+    // Catálogo completo según schema_mt.py
     const SCHEMA_MT = {
       "Datos Principales": [
         "sst", "set", "nro_alimentador", "tipo_nodo_inicial", "nro_nodo_inicial",
@@ -270,7 +326,7 @@
       "Zona": [
         "zona", "afluencia_terceros", "accesibilidad_grua"
       ],
-      "Evaluación del Equipo": [
+      "Evaluación del Equipo (Trafo/SED)": [
         "perdida_aceite", "corrosion_equipo", "anclaje_plataforma", "ferreteria_soporte_equipo", "nidos_equipo", "acercamiento_arboles_equipo", "ubicacion_arboles_equipo", "soporte_cable_com", "altura_suelo_base"
       ],
       "Distancias de Seguridad (DMS)": [
@@ -281,36 +337,13 @@
       ]
     };
 
-    const ALL_FIELDS = Object.values(SCHEMA_MT).flat();
-
-    // PROMPT CON REGLA ESTRICTA DE INFERENCIA MULTI-CAMPO
-    const SYSTEM_PROMPT = `Eres clasificador técnico para inspección MT.
-Extrae e infiere TODOS los campos que apliquen de una frase dictada.
-REGLA CLAVE DE INFERENCIA:
-Si se reporta condición/anomalía de un elemento (retenida, seccionador, aislador, mensula, etc.), infiere también el campo de existencia con "SI".
-
-Responde ÚNICAMENTE una lista JSON con los campos actualizados:
-[{"campo":"<campo>","valor":"<valor>"}]
-
-CAMPOS PERMITIDOS:
-${ALL_FIELDS.join(", ")}
-
-EJEMPLO:
-Usuario: "la retenida está suelta"
-Asistente: [{"campo":"existe_retenida","valor":"SI"},{"campo":"estado_general_retenida","valor":"DESTEMPLADA"}]`;
-
-    // Renderizar dinámicamente el formulario completo y el selector
+    // Renderizar dinámicamente todo el formulario
     const dynamicForm = document.getElementById("dynamicForm");
-    const quickSelectField = document.getElementById("quickSelectField");
-
     Object.entries(SCHEMA_MT).forEach(([seccion, campos]) => {
       const secHeader = document.createElement("div");
       secHeader.className = "section-title";
       secHeader.innerText = seccion;
       dynamicForm.appendChild(secHeader);
-
-      const optGroup = document.createElement("optgroup");
-      optGroup.label = seccion;
 
       campos.forEach(campo => {
         const fGroup = document.createElement("div");
@@ -320,31 +353,23 @@ Asistente: [{"campo":"existe_retenida","valor":"SI"},{"campo":"estado_general_re
           <input type="text" id="${campo}" placeholder="Sin registrar">
         `;
         dynamicForm.appendChild(fGroup);
-
-        const opt = document.createElement("option");
-        opt.value = campo;
-        opt.innerText = campo;
-        optGroup.appendChild(opt);
       });
-      quickSelectField.appendChild(optGroup);
     });
 
-    let engine = null;
-    const btnInit = document.getElementById("btnInit");
-    const btnMic = document.getElementById("btnMic");
+    const dictadoInput = document.getElementById("dictadoInput");
+    const btnProcesar = document.getElementById("btnProcesar");
     const btnPhoto = document.getElementById("btnPhoto");
     const cameraInput = document.getElementById("cameraInput");
     const photoContainer = document.getElementById("photoContainer");
     const photoCounter = document.getElementById("photoCounter");
     const statusText = document.getElementById("statusText");
-
     const rtTagsContainer = document.getElementById("rtTagsContainer");
-    const quickInputValue = document.getElementById("quickInputValue");
+    const countdownBadge = document.getElementById("countdownBadge");
 
     let photos = [];
 
-    // Función para actualizar campos y UI
-    function updateField(fieldName, val) {
+    // Función para actualizar campos en el formulario
+    function setField(fieldName, val) {
       const el = document.getElementById(fieldName);
       if (el) {
         el.value = val;
@@ -352,30 +377,201 @@ Asistente: [{"campo":"existe_retenida","valor":"SI"},{"campo":"estado_general_re
         const parent = el.closest(".form-group");
         parent.classList.add("updated");
         setTimeout(() => parent.classList.remove("updated"), 2500);
-
-        quickSelectField.value = fieldName;
-        quickInputValue.value = val;
       }
     }
 
-    // 1. INICIALIZAR IA LOCAL
-    btnInit.addEventListener("click", async () => {
-      btnInit.disabled = true;
-      try {
-        statusText.innerText = "Cargando modelo a caché local...";
-        engine = await webllm.CreateMLCEngine("SmolLM2-360M-Instruct-q4f16_1-MLC", {
-          initProgressCallback: (p) => { statusText.innerText = p.text; }
-        });
-        statusText.innerText = "✓ IA cargada y lista para operar offline.";
-        btnMic.disabled = false;
-        btnInit.style.display = "none";
-      } catch (err) {
-        statusText.innerText = "Error: " + err.message;
-        btnInit.disabled = false;
+    // Motor de inferencia semántico multi-campo[cite: 1]
+    function procesarTexto(texto) {
+      const t = texto.toLowerCase();
+      const updates = [];
+
+      // 1. RETENIDA[cite: 1]
+      if (t.includes("retenida") || t.includes("tirante")) {
+        updates.push({ campo: "existe_retenida", valor: "SI" });
+        if (t.includes("suelta") || t.includes("destemplad") || t.includes("floja")) {
+          updates.push({ campo: "estado_general_retenida", valor: "DESTEMPLADA" });
+        } else if (t.includes("mantenimiento")) {
+          updates.push({ campo: "estado_general_retenida", valor: "REQUIERE MANTENIMIENTO" });
+        } else if (t.includes("cambio") || t.includes("rota")) {
+          updates.push({ campo: "estado_general_retenida", valor: "REQUIERE CAMBIO" });
+        } else if (t.includes("buen estado") || t.includes("bien") || t.includes("conforme")) {
+          updates.push({ campo: "estado_general_retenida", valor: "buen estado" });
+        }
+        if (t.includes("oxido") || t.includes("corrosion")) {
+          updates.push({ campo: "corrosion_retenida", valor: "CORROSION ALTA" });
+        }
+      }
+
+      // 2. AISLADORES[cite: 1]
+      if (t.includes("aislador") || t.includes("aisladores")) {
+        updates.push({ campo: "existen_aisladores", valor: "SI" });
+        if (t.includes("polimerico")) updates.push({ campo: "tipo_aislador", valor: "POLIMERICO" });
+        if (t.includes("porcelana")) updates.push({ campo: "tipo_aislador", valor: "PORCELANA" });
+        if (t.includes("hibrido")) updates.push({ campo: "tipo_aislador", valor: "HIBRIDO" });
+
+        if (t.includes("roto") || t.includes("quebrado") || t.includes("dañado") || t.includes("cambio")) {
+          updates.push({ campo: "estado_general_aislador", valor: "DAÑADO/REQUIERE CAMBIO" });
+        } else if (t.includes("buen estado") || t.includes("conforme")) {
+          updates.push({ campo: "estado_general_aislador", valor: "buen estado" });
+        }
+        if (t.includes("polucion") || t.includes("contamina") || t.includes("sucio")) {
+          updates.push({ campo: "contaminacion_aislador", valor: "ALTA POLUCION MEDIO Y POCO CARBONIZADO (TARCKING CONSIDERABLE)" });
+        }
+      }
+
+      // 3. CRUCETAS / MÉNSULAS[cite: 1]
+      if (t.includes("cruceta") || t.includes("mensula")) {
+        updates.push({ campo: "existen_mensulas", valor: "SI" });
+        if (t.includes("madera")) {
+          updates.push({ campo: "tipo_mensula", valor: "MADERA" });
+          if (t.includes("apolillada") || t.includes("podrid")) updates.push({ campo: "estado_cruceta_madera", valor: "APOLILLADA" });
+        } else {
+          updates.push({ campo: "tipo_mensula", valor: "CONCRETO" });
+          if (t.includes("rajad") || t.includes("fisura")) updates.push({ campo: "estado_cruceta_cac", valor: "RAJADA" });
+          if (t.includes("desprendimiento")) updates.push({ campo: "estado_cruceta_cac", valor: "DESPRENDIMIENTO CONCRETO" });
+        }
+      }
+
+      // 4. SECCIONADOR / CUT OUT[cite: 1]
+      if (t.includes("seccionador") || t.includes("cut out") || t.includes("cutout")) {
+        updates.push({ campo: "existe_seccionador", valor: "SI" });
+        if (t.includes("quemado") || t.includes("chisporroteo") || t.includes("descarga")) {
+          updates.push({ campo: "descarga_seccionador", valor: "ALTAMENTE CARBONIZADO (ALTO TRACKING)" });
+        }
+        if (t.includes("oxido") || t.includes("corrosion") || t.includes("dañado")) {
+          updates.push({ campo: "estado_seccionador", valor: "CORROSION ALTA" });
+        }
+      }
+
+      // 5. PUESTA A TIERRA (PAT)[cite: 1]
+      if (t.includes("tierra") || t.includes("puesta a tierra") || t.includes("pat")) {
+        if (t.includes("cortado") || t.includes("incompleto") || t.includes("robado")) {
+          updates.push({ campo: "conexion_tierra_mt", valor: "EXTERNA INCOMPLETA" });
+        } else if (t.includes("buen estado") || t.includes("conforme")) {
+          updates.push({ campo: "conexion_tierra_mt", valor: "EXTERNA-BUEN ESTADO" });
+        }
+        if (t.includes("pozo") && t.includes("tapa rota")) {
+          updates.push({ campo: "estado_pozo_mt", valor: "VISIBLE-TAPA ROTA" });
+        }
+      }
+
+      // 6. POSTE Y BASE[cite: 1]
+      if (t.includes("inclinado") || t.includes("desplomado") || t.includes("plomo")) {
+        if (t.includes("mayor a 5") || t.includes("muy inclinado")) {
+          updates.push({ campo: "estado_inclinacion", valor: "MAYOR A 5°" });
+        } else if (t.includes("menor a 5") || t.includes("poco inclinado")) {
+          updates.push({ campo: "estado_inclinacion", valor: "MENOR A 5°" });
+        } else {
+          updates.push({ campo: "estado_inclinacion", valor: "NO PRESENTA" });
+        }
+      }
+      if (t.includes("base") && (t.includes("rajada") || t.includes("concreto desprendido") || t.includes("deterioro"))) {
+        updates.push({ campo: "corrosion_base", valor: "B = concreto desprendido" });
+      }
+
+      // 7. ÁRBOLES Y DMS[cite: 1]
+      if (t.includes("arbol") || t.includes("ramas")) {
+        if (t.includes("contacto") || t.includes("tocando")) {
+          updates.push({ campo: "acercamiento_arboles", valor: "RAMAS EN CONTACTO" });
+        } else if (t.includes("cerca")) {
+          updates.push({ campo: "acercamiento_arboles", valor: "RAMAS CERCA" });
+        }
+      }
+
+      // 8. CÓDIGO DE ACTIVO / POSTE[cite: 1]
+      const matchCodigo = t.match(/(?:poste|codigo|estructura)\s*([a-z0-9\-]+)/i);
+      if (matchCodigo && !["de", "en", "el", "la"].includes(matchCodigo[1])) {
+        updates.push({ campo: "cod_activo_principal", valor: matchCodigo[1].toUpperCase() });
+      }
+
+      // 9. Fallback general a observaciones[cite: 1]
+      if (updates.length === 0) {
+        updates.push({ campo: "observaciones", valor: texto });
+      }
+
+      return updates;
+    }
+
+    // Función unificada que ejecuta la clasificación
+    function ejecutarClasificacion() {
+      detenerTemporizador();
+      const texto = dictadoInput.value.trim();
+      if (!texto) return;
+
+      const resultados = procesarTexto(texto);
+      rtTagsContainer.innerHTML = "";
+
+      resultados.forEach(item => {
+        setField(item.campo, item.valor);
+
+        const div = document.createElement("div");
+        div.className = "rt-item";
+        div.innerHTML = `<span class="badge-field">${item.campo}</span><span class="badge-arrow">➔</span><span class="badge-value">${item.valor}</span>`;
+        rtTagsContainer.appendChild(div);
+      });
+
+      statusText.innerText = `✓ Clasificado con éxito: ${resultados.length} campo(s) llenado(s).`;
+      dictadoInput.value = "";
+    }
+
+    // LÓGICA DE TEMPORIZADOR DE 10 SEGUNDOS (DEBOUNCING VISUAL)
+    let timerId = null;
+    let countdownInterval = null;
+    let timeLeft = 10;
+
+    function iniciarTemporizador() {
+      detenerTemporizador();
+      timeLeft = 10;
+      countdownBadge.innerText = `${timeLeft}s para procesar`;
+      countdownBadge.className = "timer-badge active";
+
+      countdownInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft > 0) {
+          countdownBadge.innerText = `${timeLeft}s para procesar`;
+        } else {
+          detenerTemporizador();
+        }
+      }, 1000);
+
+      timerId = setTimeout(() => {
+        ejecutarClasificacion();
+      }, 10000);
+    }
+
+    function detenerTemporizador() {
+      if (timerId) clearTimeout(timerId);
+      if (countdownInterval) clearInterval(countdownInterval);
+      timerId = null;
+      countdownInterval = null;
+      countdownBadge.innerText = "Inactivo";
+      countdownBadge.className = "timer-badge";
+    }
+
+    // Escuchar dictado o entrada de texto en el textarea
+    dictadoInput.addEventListener("input", () => {
+      const texto = dictadoInput.value.trim();
+      if (texto.length > 0) {
+        iniciarTemporizador(); // Reinicia la cuenta de 10s tras cada palabra dictada
+      } else {
+        detenerTemporizador();
       }
     });
 
-    // 2. CONTROL DE CÁMARA
+    // Procesamiento inmediato al tocar el botón
+    btnProcesar.addEventListener("click", () => {
+      ejecutarClasificacion();
+    });
+
+    // Enter en teclado físico
+    dictadoInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        ejecutarClasificacion();
+      }
+    });
+
+    // Cámara nativa
     btnPhoto.addEventListener("click", () => cameraInput.click());
     cameraInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
@@ -391,157 +587,11 @@ Asistente: [{"campo":"existe_retenida","valor":"SI"},{"campo":"estado_general_re
           photoContainer.appendChild(thumb);
           
           photoCounter.innerText = `(${photos.length})`;
-          statusText.innerText = `✓ Foto ${photos.length} almacenada.`;
+          statusText.innerText = `✓ Foto ${photos.length} almacenada en memoria.`;
         };
         reader.readAsDataURL(file);
       }
     });
-
-    // 3. MICRÓFONO Y CLASIFICACIÓN MULTI-CAMPO
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognizer = new SpeechRecognition();
-      recognizer.lang = "es-PE";
-      recognizer.continuous = false;
-      recognizer.interimResults = false;
-
-      btnMic.addEventListener("click", () => {
-        recognizer.start();
-        btnMic.classList.add("listening");
-        btnMic.innerHTML = "<span>🔴</span> Escuchando...";
-      });
-
-      recognizer.onresult = async (event) => {
-        btnMic.classList.remove("listening");
-        btnMic.innerHTML = "<span>🎤</span> Dictar";
-        const dictado = event.results[0][0].transcript;
-        statusText.innerText = "Clasificando inferencias...";
-
-        try {
-          const response = await engine.chat.completions.create({
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: dictado }
-            ],
-            temperature: 0.1,
-            max_tokens: 60
-          });
-
-          const raw = response.choices[0].message.content.trim();
-          const clean = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-          const lista = JSON.parse(clean);
-
-          // Renderizar lista en Monitor de Tiempo Real
-          rtTagsContainer.innerHTML = "";
-          
-          const items = Array.isArray(lista) ? lista : [lista];
-          items.forEach(item => {
-            updateField(item.campo, item.valor);
-
-            const div = document.createElement("div");
-            div.className = "rt-item";
-            div.innerHTML = `<span class="badge-field">${item.campo}</span><span class="badge-arrow">➔</span><span class="badge-value">${item.valor}</span>`;
-            rtTagsContainer.appendChild(div);
-          });
-
-          statusText.innerText = `✓ Se actualizaron ${items.length} campos.`;
-        } catch (e) {
-          console.error(e);
-          updateField("observaciones", dictado);
-          rtTagsContainer.innerHTML = `<div class="rt-item"><span class="badge-field">observaciones</span><span class="badge-arrow">➔</span><span class="badge-value">${dictado}</span></div>`;
-          statusText.innerText = "Derivado a observaciones.";
-        }
-      };
-
-      recognizer.onerror = () => {
-        btnMic.classList.remove("listening");
-        btnMic.innerHTML = "<span>🎤</span> Dictar";
-      };
-    }
-
-    // 4. EDICIÓN MANUAL DESDE PANEL SUPERIOR
-    quickSelectField.addEventListener("change", () => {
-      const target = document.getElementById(quickSelectField.value);
-      if (target) quickInputValue.value = target.value;
-    });
-
-    quickInputValue.addEventListener("input", (e) => {
-      const sel = quickSelectField.value;
-      const val = e.target.value;
-      const target = document.getElementById(sel);
-      if (target) {
-        target.value = val;
-        rtTagsContainer.innerHTML = `<div class="rt-item"><span class="badge-field">${sel}</span><span class="badge-arrow">➔</span><span class="badge-value">${val || "(vacío)"}</span></div>`;
-      }
-    });
-
-    // 5. EDICIÓN MANUAL DIRECTA EN FORMULARIO
-    dynamicForm.addEventListener("input", (e) => {
-      if (e.target.tagName === "INPUT") {
-        const sel = e.target.id;
-        const val = e.target.value;
-        quickSelectField.value = sel;
-        quickInputValue.value = val;
-        rtTagsContainer.innerHTML = `<div class="rt-item"><span class="badge-field">${sel}</span><span class="badge-arrow">➔</span><span class="badge-value">${val || "(vacío)"}</span></div>`;
-      }
-    });
   </script>
-</head>
-<body>
-  <div class="container">
-    
-    <div class="panel">
-      <h2>Inspección de Red MT (TECSUR/LDS)</h2>
-      
-      <button id="btnInit" class="btn-init">Inicializar Motor de IA</button>
-      
-      <div class="action-grid">
-        <button id="btnMic" class="btn-mic" disabled>
-          <span>🎤</span> Dictar
-        </button>
-        <button id="btnPhoto" class="btn-cam">
-          <span>📷</span> Tomar Foto
-        </button>
-      </div>
-
-      <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
-
-      <!-- MONITOR EN TIEMPO REAL MULTI-CAMPO -->
-      <div class="rt-monitor">
-        <div class="rt-title">En tiempo real (Última inferencia)</div>
-        <div id="rtTagsContainer" class="rt-tags-container">
-          <div class="rt-item">
-            <span class="badge-field">esperando_dictado</span>
-            <span class="badge-arrow">➔</span>
-            <span class="badge-value">sin datos</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- EDICIÓN MANUAL RÁPIDA -->
-      <div class="manual-edit-box">
-        <label style="color:#0056b3; font-weight:bold;">Modificar campo manualmente:</label>
-        <div class="manual-grid">
-          <select id="quickSelectField"></select>
-          <input type="text" id="quickInputValue" placeholder="Escribe el valor...">
-        </div>
-      </div>
-
-      <div id="statusText" class="status">Pulsa "Inicializar Motor" para comenzar.</div>
-
-      <!-- GALERÍA DE FOTOS -->
-      <h4 style="margin: 8px 0 2px 0; font-size: 11px; color: #555;">
-        Fotos en sesión <span id="photoCounter">(0)</span>
-      </h4>
-      <div id="photoContainer" class="photo-grid"></div>
-    </div>
-
-    <!-- FORMULARIO COMPLETO RENDERIZADO DESDE EL ESQUEMA -->
-    <div class="panel">
-      <h3 style="margin-top:0; color:#0056b3;">Catálogo de Inspección Completo</h3>
-      <div id="dynamicForm"></div>
-    </div>
-
-  </div>
 </body>
 </html>
