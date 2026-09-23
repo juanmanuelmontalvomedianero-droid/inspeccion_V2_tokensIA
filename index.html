@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Inspección MT Móvil - Calibrado</title>
+  <title>Inspección MT/BT - DMS Oficial</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.basic.min.js"></script>
@@ -21,11 +21,11 @@
 <body class="p-4 max-w-lg mx-auto pb-24">
 
   <div class="mb-4 text-center">
-    <h1 class="text-2xl font-bold text-sky-400">⚡ Inspección MT (Calibrado)</h1>
+    <h1 class="text-2xl font-bold text-sky-400">⚡ Inspección MT (Matriz DMS)</h1>
     <div class="flex justify-center gap-2 mt-1">
       <span class="text-[10px] bg-slate-800 text-teal-400 px-2 py-0.5 rounded border border-teal-800">Capa 1: Regex ✓</span>
-      <span class="text-[10px] bg-slate-800 text-sky-400 px-2 py-0.5 rounded border border-sky-800">Capa 2: Fuzzy (0.35) ✓</span>
-      <span id="badge-ia" class="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-amber-800">Capa 3: Cargando IA...</span>
+      <span class="text-[10px] bg-slate-800 text-sky-400 px-2 py-0.5 rounded border border-sky-800">Capa 2: Fuzzy (0.30) ✓</span>
+      <span id="badge-ia" class="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-amber-800">Capa 3: Semántica IA ✓</span>
     </div>
   </div>
 
@@ -48,9 +48,9 @@
 
   <div class="card p-4 mb-4">
     <label class="text-xs font-semibold text-slate-400">Dictado por Voz:</label>
-    <textarea id="txt-dictado" rows="3" class="w-full p-2 text-sm mt-1" placeholder="Ej: 'Poste concreto de trece metros inclinado mayor a 5 grados sin zócalo con cimentación aislador fogueado'"></textarea>
+    <textarea id="txt-dictado" rows="3" class="w-full p-2 text-sm mt-1" placeholder="Ej: 'Poste MT concreto 13m... recorrido predio edificaciones... tip 1034 si riesgo, sin riesgo en comunicaciones, no tiene cubierta de proteccion'"></textarea>
     <button id="btn-procesar" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg text-sm mt-2 transition">
-      ⚡ Procesar Dictado Calibrado
+      ⚡ Procesar Dictado
     </button>
   </div>
 
@@ -82,8 +82,14 @@
   <script type="module">
     const ESQUEMA_DESACOPLADO = {
       "poste": {
-        titulo: "Poste y Fuste",
+        titulo: "Poste, Fuste y Fundación",
         campos: {
+          nivel_tension: {
+            label: "NIVEL DE TENSIÓN",
+            ancla: ["tension", "red", "poste", "linea", "nivel"],
+            opciones: ["MT", "BT"],
+            aliases: ["media tension", "baja tension", "mt", "bt", "red mt", "red bt", "primaria", "secundaria"]
+          },
           tipo_poste: {
             label: "TIPO DE POSTE",
             ancla: ["poste", "fuste", "estructura", "material"],
@@ -101,12 +107,7 @@
             ancla: ["cuerpo", "fuste", "media caña", "tronco"],
             opciones: ["Buen Estado", "Rajaduras", "Descascarado Severo"],
             aliases: ["cuerpo buen estado", "cuerpo rajado", "rajaduras cuerpo", "fisura cuerpo", "cascaron"]
-          }
-        }
-      },
-      "base_fundacion": {
-        titulo: "Base y Fundación",
-        campos: {
+          },
           corrosion_base: {
             label: "CORROSIÓN BASE POSTE",
             ancla: ["base", "patas", "arranque", "pie"],
@@ -167,6 +168,65 @@
           }
         }
       },
+      "distancias_seguridad": {
+        titulo: "Evaluación de las distancias de seguridad",
+        campos: {
+          ubicacion_recorrido_red: {
+            label: "UBICACIÓN O RECORRIDO DE LA RED MT",
+            ancla: ["recorrido", "ubicacion", "sobre", "pasa por"],
+            opciones: ["PREDIO-CASA-EDIFICACIONES", "CABLE DE TELECOMUNICACIONES", "CARTELES-LETREROS", "CONDUCTOR BT"],
+            aliases: ["predio casa edificaciones", "casa", "edificaciones", "cable de telecomunicaciones", "telecomunicaciones", "carteles letreros", "carteles", "letreros", "conductor bt"]
+          },
+          edificaciones_debajo_red: {
+            label: "EDIFICACIONES O PROPIEDADES DEBAJO DE LA RED MT",
+            ancla: ["debajo", "bajo la red", "propiedad debajo", "edificaciones debajo"],
+            opciones: ["SI-RIESGO", "NO"],
+            aliases: ["debajo de la red", "casa debajo", "edificacion debajo", "propiedad debajo"]
+          },
+          dms_edificacion_tip1034: {
+            label: "RED DE EMT A EDIFICACIÓN DH<2.50 Y DV<4.00 (TIP 1034, 2024)",
+            ancla: ["edificacion", "fachada", "balcon", "ventana", "tip 1034", "1034", "techo"],
+            opciones: ["SI-RIESGO", "NO"],
+            aliases: ["dms edificacion", "fachada cerca", "balcon cerca", "ventana cerca", "tip 1034", "dms casa", "dh menor a dos y medio"]
+          },
+          dms_comunicaciones_tip1036: {
+            label: "RED DE EMT A COMUNICACIONES DH<1.50 DV<1.80 (TIP 1036, 2026)",
+            ancla: ["comunicaciones", "telecomunicaciones", "telefono", "fibra", "tip 1036", "1036"],
+            opciones: ["SI-RIESGO", "NO"],
+            aliases: ["dms comunicaciones", "cable telefono cerca", "fibra cerca", "tip 1036", "comunicaciones cerca"]
+          },
+          dms_cartel_tip5016: {
+            label: "RED DE EMT A CARTEL DH<2.50 DV<4.00 (TIP 5016)",
+            ancla: ["cartel", "letrero", "panel", "publicidad", "tip 5016", "5016"],
+            opciones: ["SI-RIESGO", "NO"],
+            aliases: ["dms cartel", "cartel cerca", "letrero cerca", "panel publicitario", "tip 5016"]
+          },
+          dms_red_bt_tip5032: {
+            label: "RED DE EMT A RED BT DH<1.50 DV<1.20 (TIP 5032)",
+            ancla: ["red bt", "baja tension", "conductor bt", "linea bt"],
+            opciones: ["SI-RIESGO", "NO"],
+            aliases: ["dms red bt", "red baja tension cerca", "cable bt cerca", "cruce con bt", "tip 5032"]
+          },
+          dms_grifo: {
+            label: "EMT (SED) A GRIFO DH<7.60",
+            ancla: ["grifo", "gasocentro", "estacion de servicio", "combustible"],
+            opciones: ["SI-RIESGO", "NO"],
+            aliases: ["dms grifo", "grifo cerca", "gasocentro", "tanque de combustible", "grifo a menos de 7.60"]
+          },
+          dms_poste_ap_bt: {
+            label: "RED DE EMT A POSTE AP-BT DH<1.50 DV<1.40 (TIP 5032)",
+            ancla: ["poste ap", "poste bt", "pastoral", "alumbrado"],
+            opciones: ["SI-RIESGO", "NO"],
+            aliases: ["dms poste ap", "poste alumbrado cerca", "pastoral cerca", "poste bt cerca"]
+          },
+          cubierta_proteccion_dms: {
+            label: "CUBIERTA DE PROTECCIÓN PARA DMS",
+            ancla: ["cubierta", "proteccion", "manguera", "forro"],
+            opciones: ["NO TIENE", "SI TIENE"],
+            aliases: ["cubierta de proteccion", "manguera aislante", "forro protector", "cubierta dms", "proteccion dms"]
+          }
+        }
+      },
       "retenida": {
         titulo: "Retenida MT",
         campos: {
@@ -174,7 +234,7 @@
             label: "RETENIDA MT",
             ancla: ["retenida", "tirante", "viento"],
             opciones: ["No Requiere", "Buen Estado", "Destemplada/Floja", "Requiere Mantenimiento/Cambio"],
-            aliases: ["no requiere retenida", "sin retenida", "no tiene retenida", "retenida buen estado", "tirante flojo", "retenida destemplada", "cable suelto", "panza", "nuez rota"]
+            aliases: ["no requiere retenida", "sin retenida", "no tiene retenida", "retenida buen estado", "tirante flojo", "retenida destemplada", "cable suelto", "panza", "nuez rota", "suelta", "floja", "retenida suelta", "cable flojo", "tirante suelto"]
           }
         }
       }
@@ -206,15 +266,14 @@
           cfg.aliases.forEach(al => items.push({ secKey, cKey, target: null, term: al.toLowerCase() }));
         }
       }
-      // Umbral calibrado a 0.35 (tolerante a errores acústicos del dictado)
-      fuseInstancia = new Fuse(items, { keys: ['term'], threshold: 0.35, ignoreLocation: true });
+      fuseInstancia = new Fuse(items, { keys: ['term'], threshold: 0.30, ignoreLocation: true });
     }
     inicializarFuzzy();
 
     async function inicializarIA() {
       try {
         extractor = await window.pipeline('feature-extraction', 'Xenova/paraphrase-multilingual-MiniLM-L12-v2');
-        document.getElementById('badge-ia').innerText = "Capa 3: Semántica IA (0.52) ✓";
+        document.getElementById('badge-ia').innerText = "Capa 3: Semántica IA (0.50) ✓";
         document.getElementById('badge-ia').className = "text-[10px] bg-slate-800 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800";
 
         for (const [secKey, sec] of Object.entries(ESQUEMA_DESACOPLADO)) {
@@ -254,11 +313,18 @@
       const texto = normalizarTexto(textoCrudo);
 
       // ==========================================
-      // FASE 1: EVALUACIÓN DETERMINISTA GLOBAL
+      // FASE 1: EVALUACIÓN DETERMINISTA GLOBAL (Capa 1)
       // ==========================================
 
-      // 1.1 Inclinación Numérica y Cualitativa
-      const idInc = "base_fundacion.estado_inclinacion";
+      // Nivel de Tensión
+      const idNivel = "poste.nivel_tension";
+      if (!registroEnProceso[idNivel]) {
+        if (/\b(media tension|mt|primaria)\b/i.test(texto)) extracciones[idNivel] = "MT";
+        else if (/\b(baja tension|bt|secundaria)\b/i.test(texto)) extracciones[idNivel] = "BT";
+      }
+
+      // Inclinación
+      const idInc = "poste.estado_inclinacion";
       if (!registroEnProceso[idInc]) {
         const mGrados = texto.match(/(\d+)\s*(?:°|grados?)/i);
         if (mGrados) {
@@ -272,7 +338,7 @@
         }
       }
 
-      // 1.2 Altura del Poste
+      // Altura del Poste
       const idAlt = "poste.altura_poste";
       if (!registroEnProceso[idAlt]) {
         const mAlt = texto.match(/\b(11|13|15|9|8)\b\s*(?:m|mts|metros)?/i);
@@ -281,7 +347,7 @@
         }
       }
 
-      // 1.3 Material del Poste
+      // Material del Poste
       const idTipoPoste = "poste.tipo_poste";
       if (!registroEnProceso[idTipoPoste]) {
         if (/\b(concreto|cemento|cac)\b/i.test(texto) && !/\bcruceta\b/i.test(texto)) extracciones[idTipoPoste] = "CONCRETO";
@@ -290,14 +356,14 @@
         else if (/\b(prfv|fibra)\b/i.test(texto)) extracciones[idTipoPoste] = "PRFV";
       }
 
-      // 1.4 Retenida Ausente
+      // Retenida Ausente
       const idRet = "retenida.estado_retenida";
       if (!registroEnProceso[idRet] && /\b(sin retenida|no tiene retenida|no requiere retenida|sin tirante)\b/i.test(texto)) {
         extracciones[idRet] = "No Requiere";
       }
 
       // ==========================================
-      // FASE 2: EVALUACIÓN POR FRAGMENTOS (FUZZY + IA)
+      // FASE 2: EVALUACIÓN POR FRAGMENTOS (Capa 2 y Capa 3)
       // ==========================================
       const fragmentos = dividirFragmentos(texto);
 
@@ -310,30 +376,48 @@
 
             if (registroEnProceso[idCampo] || extracciones[idCampo]) continue;
 
-            // Filtro flexible: coincide ancla O coincide algún alias directamente
             const coincideAncla = cfg.ancla.some(a => new RegExp(`\\b${a}`, 'i').test(fragLow));
             const coincideAlias = cfg.aliases.some(al => new RegExp(`\\b${al}`, 'i').test(fragLow));
 
             if (!coincideAncla && !coincideAlias) continue;
 
-            // Detección de binarios SI / NO
+            // Manejo de opciones SI-RIESGO / NO para la Matriz DMS
+            if (JSON.stringify(cfg.opciones) === JSON.stringify(["SI-RIESGO", "NO"])) {
+              const esRiesgo = /\b(si|riesgo|infraccion|vulnera|vulnerada|peligro|menos de|cerca)\b/i.test(fragLow);
+              const esSinRiesgo = /\b(no|sin riesgo|conforme|no presenta|lejos|cumple)\b/i.test(fragLow);
+              if (esSinRiesgo) {
+                extracciones[idCampo] = "NO";
+              } else if (esRiesgo) {
+                extracciones[idCampo] = "SI-RIESGO";
+              }
+              continue;
+            }
+
+            // Manejo de binarios genéricos SI / NO (zócalo, cimentación)
             if (JSON.stringify(cfg.opciones) === JSON.stringify(["SI", "NO"])) {
-              const tieneNegacion = /\b(sin|no|falta|cero|sin zocalo|no tiene)\b/i.test(fragLow);
+              const tieneNegacion = /\b(sin|no|falta|cero|sin zocalo|no tiene|sin cimentacion)\b/i.test(fragLow);
               extracciones[idCampo] = tieneNegacion ? "NO" : "SI";
               continue;
             }
 
-            // Capa 2: Fuzzy Matching tolerante (0.35)
+            // Manejo específico de Cubierta de Protección (NO TIENE / SI TIENE)
+            if (JSON.stringify(cfg.opciones) === JSON.stringify(["NO TIENE", "SI TIENE"])) {
+              const tieneNo = /\b(no tiene|sin cubierta|no cuenta|falta cubierta)\b/i.test(fragLow);
+              extracciones[idCampo] = tieneNo ? "NO TIENE" : "SI TIENE";
+              continue;
+            }
+
+            // Capa 2: Fuzzy Matching tolerante (0.30)
             if (fuseInstancia) {
               const res = fuseInstancia.search(fragLow);
               const m = res.find(r => r.item.secKey === secKey && r.item.cKey === cKey);
-              if (m && m.score <= 0.35 && m.item.target) {
+              if (m && m.score <= 0.30 && m.item.target) {
                 extracciones[idCampo] = m.item.target;
                 continue;
               }
             }
 
-            // Capa 3: Semántica con umbral calibrado al 52% (0.52)
+            // Capa 3: Semántica con umbral al 50% (0.50)
             if (extractor && embeddingsCatalogo[idCampo]) {
               const out = await extractor(frag, { pooling: 'mean', normalize: true });
               const vUser = Array.from(out.data);
@@ -348,8 +432,7 @@
                 }
               }
 
-              // Umbral 0.52 calibrado
-              if (bestScore >= 0.52) {
+              if (bestScore >= 0.50) {
                 extracciones[idCampo] = bestOp;
               }
             }
@@ -464,8 +547,8 @@
       if (registrosSesion.length === 0) return alert("No hay datos para exportar.");
       const ws = XLSX.utils.json_to_sheet(registrosSesion);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Inspecciones_MT");
-      XLSX.writeFile(wb, `inspeccion_MT_${Date.now()}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, ws, "Inspecciones");
+      XLSX.writeFile(wb, `inspeccion_${Date.now()}.xlsx`);
     });
 
     document.getElementById('btn-descargar-csv').addEventListener('click', () => {
@@ -475,7 +558,7 @@
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `inspeccion_MT_${Date.now()}.csv`;
+      link.download = `inspeccion_${Date.now()}.csv`;
       link.click();
     });
   </script>
