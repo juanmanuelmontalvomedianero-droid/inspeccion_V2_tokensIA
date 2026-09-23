@@ -11,12 +11,12 @@
       --card-border: #1e3a5f;    /* Borde azul técnico */
       --primary: #0284c7;        /* Azul primario vibrante */
       --primary-hover: #0369a1;
-      --accent: #38bdf8;         /* Celeste cian para contrastes y focos */
-      --success: #10b981;        /* Verde esmeralda para foto */
+      --accent: #38bdf8;         /* Celeste cian para focos */
+      --success: #10b981;        /* Verde esmeralda */
       --warning: #f59e0b;
-      --text-main: #f1f5f9;      /* Blanco perla legible */
-      --text-muted: #94a3b8;     /* Gris azulado para etiquetas secundarias */
-      --input-bg: #0d1b2a;       /* Azul noche para cajas de texto */
+      --text-main: #f1f5f9;      /* Blanco perla */
+      --text-muted: #94a3b8;     /* Gris azulado */
+      --input-bg: #0d1b2a;       /* Azul noche para inputs */
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -55,7 +55,7 @@
       border-left: 4px solid var(--accent);
     }
 
-    /* Caja de dictado */
+    /* Caja de dictado / texto */
     .input-box-container {
       display: flex;
       flex-direction: column;
@@ -232,7 +232,7 @@
       top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
     }
 
-    /* Campos de formulario */
+    /* Formulario */
     .form-group {
       margin-bottom: 6px;
       padding: 4px 6px;
@@ -274,7 +274,7 @@
 <body>
   <div class="container">
     
-    <!-- 1. PANEL DE ENTRADA Y DICTADO -->
+    <!-- 1. ENTRADA Y DICTADO -->
     <div class="panel">
       <h2>Inspección de Red MT (TECSUR/LDS)</h2>
       
@@ -298,7 +298,7 @@
 
       <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
 
-      <!-- Monitor en vivo de última frase -->
+      <!-- Monitor en vivo -->
       <div class="rt-monitor">
         <div class="rt-title">En tiempo real (Última clasificación)</div>
         <div id="rtTagsContainer" class="rt-tags-container">
@@ -319,7 +319,7 @@
       <div id="photoContainer" class="photo-grid"></div>
     </div>
 
-    <!-- 2. PANEL INTERMEDIO: TABLA DE RESUMEN Y EXPORTACIÓN CSV -->
+    <!-- 2. BORRADOR INTERMEDIO Y EXPORTACIÓN CSV -->
     <div class="panel">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3 style="margin:0;">Borrador de Inspección Activa</h3>
@@ -349,77 +349,64 @@
       </button>
     </div>
 
-    <!-- 3. CATÁLOGO COMPLETO DE INSPECCIÓN -->
+    <!-- 3. CATÁLOGO CONSOLIDADO (32 CAMPOS) -->
     <div class="panel">
-      <h3 style="margin-top:0;">Catálogo de Inspección Completo</h3>
+      <h3 style="margin-top:0;">Catálogo de Inspección Consolidado</h3>
       <div id="dynamicForm"></div>
     </div>
 
   </div>
 
   <script>
+    // Catálogo condensado a 32 campos esenciales
     const SCHEMA_MT = {
-      "Datos Principales": [
-        "sst", "set", "nro_alimentador", "tipo_nodo_inicial", "nro_nodo_inicial",
-        "tipo_nodo_final", "nro_nodo_final", "tipo_activo_principal", "cod_activo_principal",
-        "tipo_activo_referencia", "cod_activo_referencia", "incluido_en_bd", "posibilidad_inspeccion_poste"
+      "1. Identificación y Control Operativo": [
+        "cod_activo_principal",
+        "sst",
+        "nro_alimentador",
+        "tipo_activo_principal"
       ],
-      "Características Generales": [
-        "marca", "tipo_poste", "altura_poste", "rotulado_estructura", "etiquetado", "clase_armado", "propiedad_red"
+      "2. Estructura y Fuste": [
+        "tipo_poste",
+        "altura_poste",
+        "estado_inclinacion",
+        "corrosion_base",
+        "estado_fuste_cuerpo",
+        "proteccion_impacto_poste"
       ],
-      "Corrosión e Inclinación": [
-        "estado_inclinacion", "corrosion_base", "corrosion_cuerpo_cac", "corrosion_cuerpo_madera", "zocalo", "cimentado", "nivel_empotramiento"
+      "3. Armado, Aislamiento y Herrajes": [
+        "tipo_mensula",
+        "estado_cruceta",
+        "estado_aisladores",
+        "estado_grapas_conectores",
+        "ferreteria_armado"
       ],
-      "Red Aérea MT": [
-        "tipo_conductor_emt", "estado_red_aerea", "cruce_via", "objetos_extranos", "acercamiento_arboles", "ubicacion_arboles"
+      "4. Maniobra, Protección y Enlace Subterráneo": [
+        "estado_seccionador",
+        "estado_terminales",
+        "ducto_bajada_cable"
       ],
-      "Ubicación e Impactos": [
-        "ubicacion_poste", "tipo_suelo", "expuesto_impacto", "cuenta_proteccion", "estado_riel_bloque"
+      "5. Puesta a Tierra y Retenida": [
+        "conexion_tierra_mt",
+        "estado_pozo_mt",
+        "estado_retenida"
       ],
-      "Conectores y Grapas": [
-        "estado_conectores", "estado_grapas"
+      "6. Transformación / SED": [
+        "perdida_aceite",
+        "corrosion_cuba_equipo",
+        "anclaje_plataforma"
       ],
-      "Aisladores": [
-        "existen_aisladores", "tipo_aislador", "contaminacion_aislador", "descarga_aislador", "varilla_soporte", "estado_general_aislador"
+      "7. Entorno, Riesgos DMS y Vano": [
+        "tipo_conductor_mt",
+        "acercamiento_arboles",
+        "riesgo_dms",
+        "uso_compartido_redes",
+        "accesibilidad_grua"
       ],
-      "Ménsulas y Crucetas": [
-        "existen_mensulas", "tipo_mensula", "estado_cruceta_cac", "estado_cruceta_madera", "ferreteria_soporte", "estado_diagonales"
-      ],
-      "Plataforma y Palomilla": [
-        "existe_plataforma", "tipo_plataforma", "estado_plataforma", "tipo_palomilla", "estado_palomilla"
-      ],
-      "Seccionadores": [
-        "existe_seccionador", "estado_seccionador", "contaminacion_seccionador", "descarga_seccionador", "mensula_seccionador"
-      ],
-      "Terminales": [
-        "existen_terminales", "tipo_terminales", "estado_terminal", "contaminacion_terminal", "descarga_terminal"
-      ],
-      "Subidas y Bajadas": [
-        "existe_subidas_bajadas", "tipo_proteccion_cable", "estado_proteccion_cable"
-      ],
-      "Tableros y Comunicaciones": [
-        "tipo_tablero", "tamano_tablero", "estado_general_tablero", "corrosion_tablero", "ferreteria_tablero", "tipo_proteccion_com_bt", "estado_proteccion_com_bt"
-      ],
-      "Puesta a Tierra": [
-        "conexion_tierra_mt", "rotulado_pat", "estado_pozo_mt"
-      ],
-      "Retenida MT": [
-        "existe_retenida", "tipo_retenida", "aislador_retenida", "estado_general_retenida", "corrosion_retenida", "corrosion_barra_ojo", "canaleta_retenida", "proteccion_impacto_retenida", "estado_bloque_retenida"
-      ],
-      "Uso Compartido": [
-        "uso_compartido", "pastoral_bt", "redes_bt", "cables_telecom", "equipos_terceros"
-      ],
-      "Zona": [
-        "zona", "afluencia_terceros", "accesibilidad_grua"
-      ],
-      "Evaluación del Equipo (Trafo/SED)": [
-        "perdida_aceite", "corrosion_equipo", "anclaje_plataforma", "ferreteria_soporte_equipo", "nidos_equipo", "acercamiento_arboles_equipo", "ubicacion_arboles_equipo", "soporte_cable_com", "altura_suelo_base"
-      ],
-      "Distancias de Seguridad (DMS)": [
-        "recorrido_red_mt", "edificaciones_debajo", "dms_edificacion", "dms_comunicaciones", "dms_cartel", "dms_red_bt", "dms_grifo", "dms_poste_ap_bt", "cubierta_proteccion"
-      ],
-      "Cierre Administrativo": [
-        "empresa", "actividad_origen", "observaciones", "revisado_tecsur"
+      "8. Administración y Cierre": [
+        "empresa",
+        "rotulado_etiquetado",
+        "observaciones"
       ]
     };
 
@@ -433,8 +420,12 @@
       campos.forEach(campo => {
         const fGroup = document.createElement("div");
         fGroup.className = "form-group";
+        
+        let labelText = campo.toUpperCase().replace(/_/g, " ");
+        if (campo === "sst") labelText = "SST (ORDEN TRABAJO / SERVICIO)";
+        
         fGroup.innerHTML = `
-          <label>${campo.toUpperCase().replace(/_/g, " ")}</label>
+          <label>${labelText}</label>
           <input type="text" id="${campo}" placeholder="Sin registrar">
         `;
         dynamicForm.appendChild(fGroup);
@@ -497,81 +488,133 @@
       }
     }
 
+    // Reglas semánticas para los 32 campos consolidados
     function procesarTexto(texto) {
       const t = texto.toLowerCase();
       const updates = [];
 
-      // 1. RETENIDA[cite: 1]
+      // SST (Orden de trabajo / servicio)[cite: 1]
+      const matchSST = t.match(/(?:sst|orden de trabajo|orden|solicitud|servicio)\s*([a-z0-9\-]+)/i);
+      if (matchSST && !["de", "en", "el", "la", "con", "del"].includes(matchSST[1].toLowerCase())) {
+        updates.push({ campo: "sst", valor: matchSST[1].toUpperCase() });
+      }
+
+      // Código de activo / poste[cite: 1]
+      const matchCodigo = t.match(/(?:poste|codigo|estructura)\s*([a-z0-9\-]+)/i);
+      if (matchCodigo && !["de", "en", "el", "la"].includes(matchCodigo[1].toLowerCase())) {
+        updates.push({ campo: "cod_activo_principal", valor: matchCodigo[1].toUpperCase() });
+      }
+
+      // Alimentador[cite: 1]
+      const matchAlim = t.match(/(?:alimentador|circuito)\s*([0-9]+)/i);
+      if (matchAlim) {
+        updates.push({ campo: "nro_alimentador", valor: matchAlim[1] });
+      }
+
+      // Tipo de activo[cite: 1]
+      if (t.includes("sed") || t.includes("subestacion")) updates.push({ campo: "tipo_activo_principal", valor: "SED" });
+      if (t.includes("cut out") || t.includes("seccionador fusible")) updates.push({ campo: "tipo_activo_principal", valor: "SECCIONADOR CUT OUT (PDF)" });
+
+      // Retenida / Tirante (condensada)[cite: 1]
       if (t.includes("retenida") || t.includes("tirante")) {
-        updates.push({ campo: "existe_retenida", valor: "SI" });
         if (t.includes("suelta") || t.includes("destemplad") || t.includes("floja")) {
-          updates.push({ campo: "estado_general_retenida", valor: "DESTEMPLADA" });
+          updates.push({ campo: "estado_retenida", valor: "DESTEMPLADA / SUELTA" });
         } else if (t.includes("mantenimiento")) {
-          updates.push({ campo: "estado_general_retenida", valor: "REQUIERE MANTENIMIENTO" });
-        } else if (t.includes("cambio") || t.includes("rota")) {
-          updates.push({ campo: "estado_general_retenida", valor: "REQUIERE CAMBIO" });
-        } else if (t.includes("buen estado") || t.includes("bien") || t.includes("conforme")) {
-          updates.push({ campo: "estado_general_retenida", valor: "buen estado" });
-        }
-        if (t.includes("oxido") || t.includes("corrosion")) {
-          updates.push({ campo: "corrosion_retenida", valor: "CORROSION ALTA" });
-        }
-      }
-
-      // 2. AISLADORES[cite: 1]
-      if (t.includes("aislador") || t.includes("aisladores")) {
-        updates.push({ campo: "existen_aisladores", valor: "SI" });
-        if (t.includes("polimerico")) updates.push({ campo: "tipo_aislador", valor: "POLIMERICO" });
-        if (t.includes("porcelana")) updates.push({ campo: "tipo_aislador", valor: "PORCELANA" });
-        if (t.includes("hibrido")) updates.push({ campo: "tipo_aislador", valor: "HIBRIDO" });
-
-        if (t.includes("roto") || t.includes("quebrado") || t.includes("dañado") || t.includes("cambio")) {
-          updates.push({ campo: "estado_general_aislador", valor: "DAÑADO/REQUIERE CAMBIO" });
-        } else if (t.includes("buen estado") || t.includes("conforme")) {
-          updates.push({ campo: "estado_general_aislador", valor: "buen estado" });
-        }
-        if (t.includes("polucion") || t.includes("contamina") || t.includes("sucio")) {
-          updates.push({ campo: "contaminacion_aislador", valor: "ALTA POLUCION MEDIO Y POCO CARBONIZADO (TARCKING CONSIDERABLE)" });
-        }
-      }
-
-      // 3. CRUCETAS / MÉNSULAS[cite: 1]
-      if (t.includes("cruceta") || t.includes("mensula")) {
-        updates.push({ campo: "existen_mensulas", valor: "SI" });
-        if (t.includes("madera")) {
-          updates.push({ campo: "tipo_mensula", valor: "MADERA" });
-          if (t.includes("apolillada") || t.includes("podrid")) updates.push({ campo: "estado_cruceta_madera", valor: "APOLILLADA" });
+          updates.push({ campo: "estado_retenida", valor: "REQUIERE MANTENIMIENTO" });
+        } else if (t.includes("cambio") || t.includes("rota") || t.includes("corrosion") || t.includes("oxido")) {
+          updates.push({ campo: "estado_retenida", valor: "REQUIERE CAMBIO / CORROSIÓN" });
+        } else if (t.includes("no requiere") || t.includes("no necesita")) {
+          updates.push({ campo: "estado_retenida", valor: "NO REQUIERE" });
         } else {
-          updates.push({ campo: "tipo_mensula", valor: "CONCRETO" });
-          if (t.includes("rajad") || t.includes("fisura")) updates.push({ campo: "estado_cruceta_cac", valor: "RAJADA" });
-          if (t.includes("desprendimiento")) updates.push({ campo: "estado_cruceta_cac", valor: "DESPRENDIMIENTO CONCRETO" });
+          updates.push({ campo: "estado_retenida", valor: "CONFORME" });
         }
       }
 
-      // 4. SECCIONADOR / CUT OUT[cite: 1]
+      // Aisladores[cite: 1]
+      if (t.includes("aislador") || t.includes("aisladores")) {
+        if (t.includes("roto") || t.includes("quebrado") || t.includes("dañado") || t.includes("cambio")) {
+          updates.push({ campo: "estado_aisladores", valor: "DAÑADO / REQUIERE CAMBIO" });
+        } else if (t.includes("tracking") || t.includes("carbonizado") || t.includes("descarga")) {
+          updates.push({ campo: "estado_aisladores", valor: "DESCARGA / TRACKING" });
+        } else if (t.includes("polucion") || t.includes("sucio") || t.includes("contamina")) {
+          updates.push({ campo: "estado_aisladores", valor: "POLUCIÓN SEVERA" });
+        } else {
+          updates.push({ campo: "estado_aisladores", valor: "CONFORME" });
+        }
+      }
+
+      // Ménsula / Cruceta[cite: 1]
+      if (t.includes("cruceta") || t.includes("mensula")) {
+        if (t.includes("madera")) updates.push({ campo: "tipo_mensula", valor: "MADERA" });
+        if (t.includes("concreto")) updates.push({ campo: "tipo_mensula", valor: "CONCRETO" });
+
+        if (t.includes("rajad") || t.includes("desprendimiento") || t.includes("fisura")) {
+          updates.push({ campo: "estado_cruceta", valor: "RAJADA / DESPRENDIMIENTO" });
+        } else if (t.includes("apolillada") || t.includes("podrida")) {
+          updates.push({ campo: "estado_cruceta", valor: "APOLILLADA" });
+        } else if (t.includes("revirada") || t.includes("chueca")) {
+          updates.push({ campo: "estado_cruceta", valor: "REVIRADA" });
+        } else {
+          updates.push({ campo: "estado_cruceta", valor: "BUEN ESTADO" });
+        }
+      }
+
+      // Grapas y Conectores[cite: 1]
+      if (t.includes("grapa") || t.includes("conector") || t.includes("grapas")) {
+        if (t.includes("oxido") || t.includes("corrosion") || t.includes("dañad")) {
+          updates.push({ campo: "estado_grapas_conectores", valor: "CORROSIÓN ALTA / DAÑADO" });
+        } else {
+          updates.push({ campo: "estado_grapas_conectores", valor: "SIN CORROSIÓN" });
+        }
+      }
+
+      // Ferretería estructural[cite: 1]
+      if (t.includes("ferreteria") || t.includes("perno") || t.includes("pernos") || t.includes("diagonal")) {
+        if (t.includes("flojo") || t.includes("suelto")) {
+          updates.push({ campo: "ferreteria_armado", valor: "PERNOS / RIENDAS FLOJAS" });
+        } else if (t.includes("oxido") || t.includes("corrosion")) {
+          updates.push({ campo: "ferreteria_armado", valor: "CORROSIÓN ALTA" });
+        } else {
+          updates.push({ campo: "ferreteria_armado", valor: "CONFORME" });
+        }
+      }
+
+      // Seccionador / Cut out[cite: 1]
       if (t.includes("seccionador") || t.includes("cut out") || t.includes("cutout")) {
-        updates.push({ campo: "existe_seccionador", valor: "SI" });
-        if (t.includes("quemado") || t.includes("chisporroteo") || t.includes("descarga")) {
-          updates.push({ campo: "descarga_seccionador", valor: "ALTAMENTE CARBONIZADO (ALTO TRACKING)" });
-        }
-        if (t.includes("oxido") || t.includes("corrosion") || t.includes("dañado")) {
-          updates.push({ campo: "estado_seccionador", valor: "CORROSION ALTA" });
+        if (t.includes("descolgado") || t.includes("abierto")) {
+          updates.push({ campo: "estado_seccionador", valor: "PORTAFUSIBLE DESCOLGADO" });
+        } else if (t.includes("quemado") || t.includes("descarga") || t.includes("tracking")) {
+          updates.push({ campo: "estado_seccionador", valor: "CARBONIZADO / DESCARGA" });
+        } else if (t.includes("oxido") || t.includes("corrosion")) {
+          updates.push({ campo: "estado_seccionador", valor: "CORROSIÓN ALTA" });
+        } else if (t.includes("no tiene")) {
+          updates.push({ campo: "estado_seccionador", valor: "NO TIENE" });
+        } else {
+          updates.push({ campo: "estado_seccionador", valor: "CONFORME" });
         }
       }
 
-      // 5. PUESTA A TIERRA (PAT)[cite: 1]
-      if (t.includes("tierra") || t.includes("puesta a tierra") || t.includes("pat")) {
+      // Puesta a tierra y pozo[cite: 1]
+      if (t.includes("tierra") || t.includes("pat")) {
         if (t.includes("cortado") || t.includes("incompleto") || t.includes("robado")) {
-          updates.push({ campo: "conexion_tierra_mt", valor: "EXTERNA INCOMPLETA" });
-        } else if (t.includes("buen estado") || t.includes("conforme")) {
-          updates.push({ campo: "conexion_tierra_mt", valor: "EXTERNA-BUEN ESTADO" });
+          updates.push({ campo: "conexion_tierra_mt", valor: "EXTERNA INCOMPLETA / CORTADA" });
+        } else if (t.includes("no tiene")) {
+          updates.push({ campo: "conexion_tierra_mt", valor: "NO TIENE" });
+        } else {
+          updates.push({ campo: "conexion_tierra_mt", valor: "CONFORME" });
         }
-        if (t.includes("pozo") && t.includes("tapa rota")) {
-          updates.push({ campo: "estado_pozo_mt", valor: "VISIBLE-TAPA ROTA" });
+      }
+      if (t.includes("pozo")) {
+        if (t.includes("tapa rota") || t.includes("dañado")) {
+          updates.push({ campo: "estado_pozo_mt", valor: "TAPA ROTA / DETERIORADO" });
+        } else if (t.includes("no visible")) {
+          updates.push({ campo: "estado_pozo_mt", valor: "NO VISIBLE" });
+        } else {
+          updates.push({ campo: "estado_pozo_mt", valor: "VISIBLE-BUEN ESTADO" });
         }
       }
 
-      // 6. POSTE Y BASE[cite: 1]
+      // Estructura, Base e Inclinación[cite: 1]
       if (t.includes("inclinado") || t.includes("desplomado") || t.includes("plomo")) {
         if (t.includes("mayor a 5") || t.includes("muy inclinado")) {
           updates.push({ campo: "estado_inclinacion", valor: "MAYOR A 5°" });
@@ -581,23 +624,56 @@
           updates.push({ campo: "estado_inclinacion", valor: "NO PRESENTA" });
         }
       }
-      if (t.includes("base") && (t.includes("rajada") || t.includes("concreto desprendido") || t.includes("deterioro"))) {
-        updates.push({ campo: "corrosion_base", valor: "B = concreto desprendido" });
+      if (t.includes("base")) {
+        if (t.includes("desprendimiento") || t.includes("perdida de seccion")) {
+          updates.push({ campo: "corrosion_base", valor: "CONCRETO DESPRENDIDO / PÉRDIDA DE SECCIÓN" });
+        } else if (t.includes("rajadura") || t.includes("fisura")) {
+          updates.push({ campo: "corrosion_base", valor: "RAJADURAS LEVES" });
+        } else if (t.includes("critico") || t.includes("colapso")) {
+          updates.push({ campo: "corrosion_base", valor: "MAL ESTADO CRÍTICO" });
+        } else {
+          updates.push({ campo: "corrosion_base", valor: "CONFORME" });
+        }
       }
 
-      // 7. ÁRBOLES Y DMS[cite: 1]
-      if (t.includes("arbol") || t.includes("ramas")) {
+      // Fuste / Cuerpo[cite: 1]
+      if (t.includes("fuste") || t.includes("cuerpo del poste")) {
+        if (t.includes("rajadura") || t.includes("grieta")) {
+          updates.push({ campo: "estado_fuste_cuerpo", valor: "RAJADURAS / FISURAS" });
+        } else {
+          updates.push({ campo: "estado_fuste_cuerpo", valor: "BUEN ESTADO" });
+        }
+      }
+
+      // Árboles y Entorno[cite: 1]
+      if (t.includes("arbol") || t.includes("ramas") || t.includes("vegetacion")) {
         if (t.includes("contacto") || t.includes("tocando")) {
           updates.push({ campo: "acercamiento_arboles", valor: "RAMAS EN CONTACTO" });
         } else if (t.includes("cerca")) {
           updates.push({ campo: "acercamiento_arboles", valor: "RAMAS CERCA" });
+        } else {
+          updates.push({ campo: "acercamiento_arboles", valor: "SIN PRESENCIA" });
         }
       }
 
-      // 8. CÓDIGO DE ACTIVO / POSTE[cite: 1]
-      const matchCodigo = t.match(/(?:poste|codigo|estructura)\s*([a-z0-9\-]+)/i);
-      if (matchCodigo && !["de", "en", "el", "la"].includes(matchCodigo[1])) {
-        updates.push({ campo: "cod_activo_principal", valor: matchCodigo[1].toUpperCase() });
+      // DMS (Distancias de seguridad)[cite: 1]
+      if (t.includes("dms") || t.includes("distancia de seguridad") || t.includes("edificacion")) {
+        if (t.includes("edificacion") || t.includes("casa") || t.includes("techo")) {
+          updates.push({ campo: "riesgo_dms", valor: "RIESGO A EDIFICACIÓN" });
+        } else if (t.includes("telecom") || t.includes("baja tension") || t.includes("bt")) {
+          updates.push({ campo: "riesgo_dms", valor: "RIESGO A TELECOM / BT" });
+        } else if (t.includes("cartel") || t.includes("grifo")) {
+          updates.push({ campo: "riesgo_dms", valor: "RIESGO A CARTEL / GRIFO" });
+        }
+      }
+
+      // Transformador / SED (Aceite)[cite: 1]
+      if (t.includes("aceite") || t.includes("fuga") || t.includes("trafo")) {
+        if (t.includes("fuga") || t.includes("perdida") || t.includes("derrame")) {
+          updates.push({ campo: "perdida_aceite", valor: "PÉRDIDA DE ACEITE / CONTAMINACIÓN" });
+        } else {
+          updates.push({ campo: "perdida_aceite", valor: "NO" });
+        }
       }
 
       if (updates.length === 0) {
@@ -629,6 +705,7 @@
       dictadoInput.value = "";
     }
 
+    // Temporizador de 10s (debouncing)
     let timerId = null;
     let countdownInterval = null;
     let timeLeft = 10;
