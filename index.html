@@ -3,20 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Inspección MT Móvil - Motor Híbrido Robusto</title>
-  <!-- Tailwind CSS -->
+  <title>Inspección MT Móvil - Motor Blindado</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- SheetJS para Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- Fuse.js para tolerancia a fallas acústicas -->
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.basic.min.js"></script>
-  <!-- Transformers.js (Embeddings multilingües offline) -->
   <script type="module">
     import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0';
     env.allowLocalModels = false;
     window.pipeline = pipeline;
   </script>
-
   <style>
     body { background-color: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     .card { background-color: #1e293b; border-radius: 12px; border: 1px solid #334155; }
@@ -25,17 +20,15 @@
 </head>
 <body class="p-4 max-w-lg mx-auto pb-24">
 
-  <!-- Encabezado -->
   <div class="mb-4 text-center">
-    <h1 class="text-2xl font-bold text-sky-400">⚡ Inspección MT (Motor Adaptativo)</h1>
+    <h1 class="text-2xl font-bold text-sky-400">⚡ Inspección MT (Motor Blindado)</h1>
     <div class="flex justify-center gap-2 mt-1">
-      <span class="text-[10px] bg-slate-800 text-teal-400 px-2 py-0.5 rounded border border-teal-800">Capa 1: Regex & N-gramas ✓</span>
-      <span class="text-[10px] bg-slate-800 text-sky-400 px-2 py-0.5 rounded border border-sky-800">Capa 2: Fuzzy ✓</span>
+      <span class="text-[10px] bg-slate-800 text-teal-400 px-2 py-0.5 rounded border border-teal-800">Capa 1: Regex ✓</span>
+      <span class="text-[10px] bg-slate-800 text-sky-400 px-2 py-0.5 rounded border border-sky-800">Capa 2: Fuzzy (0.15) ✓</span>
       <span id="badge-ia" class="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-amber-800">Capa 3: Cargando IA...</span>
     </div>
   </div>
 
-  <!-- Metadatos de Estructura -->
   <div class="card p-4 mb-4">
     <div class="grid grid-cols-2 gap-3 mb-3">
       <div>
@@ -53,16 +46,14 @@
     <p id="lbl-timestamp" class="text-xs text-slate-400 text-center mt-2">Timestamp: --:--:--</p>
   </div>
 
-  <!-- Dictado por Voz Abierto -->
   <div class="card p-4 mb-4">
-    <label class="text-xs font-semibold text-slate-400">Dictado por Voz Libre (Toca el micro del teclado):</label>
-    <textarea id="txt-dictado" rows="3" class="w-full p-2 text-sm mt-1" placeholder="Habla con naturalidad: 'Poste concreto de trece metros inclinado unos siete grados sin zócalo cimentado aislador fogueado'"></textarea>
+    <label class="text-xs font-semibold text-slate-400">Dictado por Voz:</label>
+    <textarea id="txt-dictado" rows="3" class="w-full p-2 text-sm mt-1" placeholder="Ej: 'Poste concreto de trece metros... inclinación mayor a cinco grados'"></textarea>
     <button id="btn-procesar" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg text-sm mt-2 transition">
-      ⚡ Procesar Dictado Adaptativo
+      ⚡ Procesar Dictado
     </button>
   </div>
 
-  <!-- Monitor en Vivo -->
   <div class="card p-4 mb-4">
     <div class="flex justify-between items-center border-b border-slate-700 pb-2 mb-2">
       <h2 class="text-sm font-bold text-sky-400">📋 Campos Registrados (Protegidos)</h2>
@@ -73,12 +64,10 @@
     </div>
   </div>
 
-  <!-- Guardado y Reportes -->
   <div class="space-y-3">
     <button id="btn-guardar" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-lg text-sm transition">
       💾 Guardar Estructura Completa
     </button>
-    
     <div class="flex gap-2">
       <button id="btn-descargar-excel" class="w-1/2 bg-teal-700 hover:bg-teal-800 text-white font-semibold py-2 px-3 rounded-lg text-xs transition">
         📥 Descargar Excel (.xlsx)
@@ -90,7 +79,6 @@
     <p id="lbl-conteo" class="text-xs text-center text-slate-400">Estructuras en memoria: 0</p>
   </div>
 
-  <!-- Motor Técnico Adaptativo -->
   <script type="module">
     const SECCIONES_MT = {
       "caracteristicas_generales": {
@@ -135,7 +123,7 @@
             aliases: ["cuerpo concreto", "fuste concreto", "rajado a media caña", "fisura longitudinal", "cascaron", "cuerpo rajado"] 
           },
           zocalo: { label: "ZÓCALO", opciones: ["SI", "NO"], aliases: ["zocalo", "collarin"] },
-          cimentado: { label: "CIMENTADO", opciones: ["SI", "NO"], aliases: ["cimentado", "cimentacion", "dado"] },
+          cimentado: { label: "CIMENTADO", opciones: ["SI", "NO"], aliases: ["cimentado", "cimentacion"] },
           nivel_empotramiento: { label: "NIVEL DE EMPOTRAMIENTO", opciones: ["CONFORME", "MUY ENTERRADO", "DESCUBIERTO"], aliases: ["empotramiento", "enterrado", "tapado", "descubierto"] }
         }
       },
@@ -177,7 +165,6 @@
     let timestampInicio = "";
     let contadorActividad = 0;
 
-    // Normalizador de palabras numéricas dictadas
     const PALABRAS_A_NUMEROS = {
       "cero": 0, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
       "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
@@ -187,13 +174,11 @@
     function normalizarNumerosHablados(texto) {
       let t = texto.toLowerCase();
       for (const [palabra, num] of Object.entries(PALABRAS_A_NUMEROS)) {
-        const regex = new RegExp(`\\b${palabra}\\b`, 'gi');
-        t = t.replace(regex, num.toString());
+        t = t.replace(new RegExp(`\\b${palabra}\\b`, 'gi'), num.toString());
       }
       return t;
     }
 
-    // Inicializar Fuse.js
     function inicializarFuzzy() {
       const itemsFuzzy = [];
       for (const [secKey, secData] of Object.entries(SECCIONES_MT)) {
@@ -210,13 +195,12 @@
       }
       fuseInstancia = new Fuse(itemsFuzzy, {
         keys: ['alias'],
-        threshold: 0.25,
+        threshold: 0.15, // Estricto: 85% de exactitud ortográfica requerida
         ignoreLocation: true
       });
     }
     inicializarFuzzy();
 
-    // Inicializar Transformers.js
     async function inicializarIA() {
       try {
         extractor = await window.pipeline('feature-extraction', 'Xenova/paraphrase-multilingual-MiniLM-L12-v2');
@@ -251,7 +235,6 @@
       return dot / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 
-    // Tokenizador inteligente por conectores en lugar de solo comas
     function dividirEnFragmentos(texto) {
       return texto
         .replace(/\.\.\./g, ',')
@@ -259,57 +242,47 @@
         .replace(/\b(y además|además|pero|con|sin|y tiene|no tiene|cuenta con)\b/gi, ',$1,')
         .split(',')
         .map(s => s.trim())
-        .filter(s => s.length > 1);
+        .filter(s => s.length > 2);
     }
 
-    // EL MOTOR ADAPTATIVO
-    async function procesarOracionAdaptativa(textoCrudo) {
+    async function procesarOracionBlindada(textoCrudo) {
       const extracciones = {};
       const texto = normalizarNumerosHablados(textoCrudo);
 
       // ==========================================
-      // CAPA 1: EXTRACCIONES DIRECTAS DETERMINISTAS
+      // CAPA 1: REGLAS DETERMINISTAS AISLADAS
       // ==========================================
-
-      // 1. Inclinación (números o palabras)
       const idInc = "corrosion_inclinacion.estado_inclinacion";
-      if (!registroEnProceso[idInc]) {
+      if (!registroEnProceso[idInc] && /\b(inclin|plomo|caida|grados?)\b/i.test(texto)) {
         const mGrados = texto.match(/(\d+)\s*(?:°|grados?)/i);
         if (mGrados) {
           const g = parseInt(mGrados[1]);
           extracciones[idInc] = g > 5 ? "MAYOR A 5°" : (g > 0 ? "MENOR A 5°" : "NO PRESENTA");
-        } else if (/\b(sin inclinacion|al plomo|a plomo|bien aplomado|no presenta inclinacion)\b/i.test(texto)) {
+        } else if (/\b(sin inclinacion|al plomo|a plomo|bien aplomado)\b/i.test(texto)) {
           extracciones[idInc] = "NO PRESENTA";
-        } else if (/\b(muy inclinado|bastante inclinado|peligro de caida)\b/i.test(texto)) {
-          extracciones[idInc] = "MAYOR A 5°";
         }
       }
 
-      // 2. Altura de Poste
       const idAlt = "caracteristicas_generales.altura_poste";
-      if (!registroEnProceso[idAlt]) {
-        const mAlt = texto.match(/\b(11|13|15|9|8)\b\s*(?:m|mts|metros)?/i);
-        if (mAlt && (mAlt[0].includes("m") || /\b(altura|poste|mide|tamano|largo)\b/i.test(texto) || /\b(de 13|de 11|de 15|de 9|de 8)\b/i.test(texto))) {
-          extracciones[idAlt] = mAlt[1];
-        }
+      if (!registroEnProceso[idAlt] && /\b(altura|poste|metros|mide|largo)\b/i.test(texto)) {
+        const mAlt = texto.match(/\b(11|13|15|9|8)\b/i);
+        if (mAlt) extracciones[idAlt] = mAlt[1];
       }
 
-      // 3. Ausencia Global de Retenida
       const idRet = "retenida.existe_retenida";
-      if (!registroEnProceso[idRet] && /\b(sin retenida|no tiene retenida|no hay retenida|no requiere retenida)\b/i.test(texto)) {
+      if (!registroEnProceso[idRet] && /\b(sin retenida|no tiene retenida|no hay retenida|sin tirante)\b/i.test(texto)) {
         extracciones[idRet] = "NO REQUIERE";
       }
 
-      // 4. Material del Poste (Directo si acompaña a poste o estructura)
       const idTipoPoste = "caracteristicas_generales.tipo_poste";
-      if (!registroEnProceso[idTipoPoste]) {
-        if (/\b(poste.*concreto|concreto.*poste|cac|poste de cemento)\b/i.test(texto)) extracciones[idTipoPoste] = "CONCRETO";
-        else if (/\b(poste.*madera|madera.*poste)\b/i.test(texto)) extracciones[idTipoPoste] = "MADERA";
-        else if (/\b(poste.*metal|metalico|fierro)\b/i.test(texto)) extracciones[idTipoPoste] = "METAL";
+      if (!registroEnProceso[idTipoPoste] && /\b(poste|fuste)\b/i.test(texto)) {
+        if (/\b(concreto|cemento|cac)\b/i.test(texto)) extracciones[idTipoPoste] = "CONCRETO";
+        else if (/\b(madera)\b/i.test(texto)) extracciones[idTipoPoste] = "MADERA";
+        else if (/\b(metal|fierro)\b/i.test(texto)) extracciones[idTipoPoste] = "METAL";
       }
 
       // ==========================================
-      // CAPA 2 Y 3: ANÁLISIS POR FRAGMENTOS DESLIZANTES
+      // CAPA 2 Y 3: ANÁLISIS CONTROLADO POR ALIAS
       // ==========================================
       const fragmentos = dividirEnFragmentos(texto);
 
@@ -320,56 +293,50 @@
           for (const [cKey, cConfig] of Object.entries(secData.campos)) {
             const idCampo = `${secKey}.${cKey}`;
 
-            // Si el campo ya tiene dato (en memoria o extraído en este ciclo), se respeta
             if (registroEnProceso[idCampo] || extracciones[idCampo]) continue;
 
             const opciones = cConfig.opciones;
             if (!opciones) continue;
 
-            // Detección de binarios SI / NO (Soporta negación antes o después)
+            // CANDADO: El fragmento DEBE contener una referencia directa al campo
+            const coincideAliasDirecto = cConfig.aliases.some(al => new RegExp(`\\b${al}\\b`, 'i').test(fragLow));
+            if (!coincideAliasDirecto) continue; // Si no lo nombra, NO lo evalúa
+
+            // Evaluación de binarios SI / NO
             if (JSON.stringify(opciones) === JSON.stringify(["SI", "NO"])) {
-              for (const al of cConfig.aliases) {
-                const regexAlias = new RegExp(`\\b${al}\\b`, 'i');
-                if (regexAlias.test(fragLow)) {
-                  // Revisa si hay negación en ese mismo fragmento
-                  const tieneNegacion = /\b(sin|no|falta|no tiene|no cuenta|cero|nada)\b/i.test(fragLow);
-                  extracciones[idCampo] = tieneNegacion ? "NO" : "SI";
-                  break;
-                }
-              }
-              if (extracciones[idCampo]) continue;
+              const tieneNegacion = /\b(sin|no|falta|no tiene|no cuenta|cero)\b/i.test(fragLow);
+              extracciones[idCampo] = tieneNegacion ? "NO" : "SI";
+              continue;
             }
 
-            // Fuzzy Matching (Capa 2)
+            // Fuzzy Matching estricto (0.15)
             if (fuseInstancia) {
               const resFuzzy = fuseInstancia.search(fragLow);
               const match = resFuzzy.find(r => r.item.secKey === secKey && r.item.cKey === cKey);
-              if (match && match.score <= 0.20 && match.item.targetOpcion) {
+              if (match && match.score <= 0.15 && match.item.targetOpcion) {
                 extracciones[idCampo] = match.item.targetOpcion;
                 continue;
               }
             }
 
-            // IA Semántica (Capa 3 - Umbral al 55%)
+            // Capa 3: Semántica con umbral elevado al 65% (0.65)
             if (extractor && embeddingsCatalogo[idCampo]) {
-              const coincideAlias = cConfig.aliases.some(al => new RegExp(`\\b${al}\\b`, 'i').test(fragLow));
-              if (coincideAlias || fragLow.length > 5) {
-                const outUser = await extractor(frag, { pooling: 'mean', normalize: true });
-                const vecUser = Array.from(outUser.data);
+              const outUser = await extractor(frag, { pooling: 'mean', normalize: true });
+              const vecUser = Array.from(outUser.data);
 
-                let bestScore = 0;
-                let bestOp = null;
-                for (const item of embeddingsCatalogo[idCampo]) {
-                  const score = cosSim(vecUser, item.vector);
-                  if (score > bestScore) {
-                    bestScore = score;
-                    bestOp = item.opcion;
-                  }
+              let bestScore = 0;
+              let bestOp = null;
+              for (const item of embeddingsCatalogo[idCampo]) {
+                const score = cosSim(vecUser, item.vector);
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestOp = item.opcion;
                 }
+              }
 
-                if (bestScore >= 0.55) {
-                  extracciones[idCampo] = bestOp;
-                }
+              // Solo asigna si supera el 65% de certeza matemática
+              if (bestScore >= 0.65) {
+                extracciones[idCampo] = bestOp;
               }
             }
           }
@@ -379,7 +346,6 @@
       return extracciones;
     }
 
-    // Render del Monitor
     function renderMonitor() {
       const cont = document.getElementById('monitor-valores');
       cont.innerHTML = "";
@@ -443,7 +409,6 @@
       }
     }
 
-    // Botones
     document.getElementById('btn-iniciar').addEventListener('click', () => {
       const d = new Date();
       timestampInicio = d.toISOString().replace('T', ' ').substring(0, 19);
@@ -456,7 +421,7 @@
     document.getElementById('btn-procesar').addEventListener('click', async () => {
       const txt = document.getElementById('txt-dictado').value;
       if (!txt.trim()) return;
-      const res = await procesarOracionAdaptativa(txt);
+      const res = await procesarOracionBlindada(txt);
       Object.assign(registroEnProceso, res);
       renderMonitor();
       document.getElementById('txt-dictado').value = "";
