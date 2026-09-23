@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Inspección MT Móvil - Motor Híbrido Robusto</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS para Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Fuse.js para tolerancia a fallas acústicas -->
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.basic.min.js"></script>
+  <!-- Transformers.js (Embeddings multilingües offline) -->
+  <script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0';
+    env.allowLocalModels = false;
+    window.pipeline = pipeline;
+  </script>
+
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .card { background-color: #1e293b; border-radius: 12px; border: 1px solid #334155; }
+    select, input, textarea { background-color: #0f172a !important; color: #f8fafc !important; border: 1px solid #475569 !important; border-radius: 8px; }
+  </style>
+</head>
+<body class="p-4 max-w-lg mx-auto pb-24">
+
+  <!-- Encabezado -->
+  <div class="mb-4 text-center">
+    <h1 class="text-2xl font-bold text-sky-400">⚡ Inspección MT (Motor Adaptativo)</h1>
+    <div class="flex justify-center gap-2 mt-1">
+      <span class="text-[10px] bg-slate-800 text-teal-400 px-2 py-0.5 rounded border border-teal-800">Capa 1: Regex & N-gramas ✓</span>
+      <span class="text-[10px] bg-slate-800 text-sky-400 px-2 py-0.5 rounded border border-sky-800">Capa 2: Fuzzy ✓</span>
+      <span id="badge-ia" class="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-amber-800">Capa 3: Cargando IA...</span>
+    </div>
+  </div>
+
+  <!-- Metadatos de Estructura -->
+  <div class="card p-4 mb-4">
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>
+        <label class="text-xs font-semibold text-slate-400">Cód. Activo:</label>
+        <input type="text" id="cod_activo" placeholder="Ej: P-10243" class="w-full p-2 text-sm mt-1">
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-slate-400">Responsable:</label>
+        <input type="text" id="responsable" value="INSPECTOR" class="w-full p-2 text-sm mt-1">
+      </div>
+    </div>
+    <button id="btn-iniciar" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition">
+      ⏱️ Iniciar Inspección
+    </button>
+    <p id="lbl-timestamp" class="text-xs text-slate-400 text-center mt-2">Timestamp: --:--:--</p>
+  </div>
+
+  <!-- Dictado por Voz Abierto -->
+  <div class="card p-4 mb-4">
+    <label class="text-xs font-semibold text-slate-400">Dictado por Voz Libre (Toca el micro del teclado):</label>
+    <textarea id="txt-dictado" rows="3" class="w-full p-2 text-sm mt-1" placeholder="Habla con naturalidad: 'Poste concreto de trece metros inclinado unos siete grados sin zócalo cimentado aislador fogueado'"></textarea>
+    <button id="btn-procesar" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg text-sm mt-2 transition">
+      ⚡ Procesar Dictado Adaptativo
+    </button>
+  </div>
+
+  <!-- Monitor en Vivo -->
+  <div class="card p-4 mb-4">
+    <div class="flex justify-between items-center border-b border-slate-700 pb-2 mb-2">
+      <h2 class="text-sm font-bold text-sky-400">📋 Campos Registrados (Protegidos)</h2>
+      <span class="text-[10px] text-slate-400">Toca ✏️ para editar</span>
+    </div>
+    <div id="monitor-valores" class="space-y-2 text-xs max-h-72 overflow-y-auto">
+      <p class="text-slate-500 italic">No hay valores detectados aún.</p>
+    </div>
+  </div>
+
+  <!-- Guardado y Reportes -->
+  <div class="space-y-3">
+    <button id="btn-guardar" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-lg text-sm transition">
+      💾 Guardar Estructura Completa
+    </button>
+    
+    <div class="flex gap-2">
+      <button id="btn-descargar-excel" class="w-1/2 bg-teal-700 hover:bg-teal-800 text-white font-semibold py-2 px-3 rounded-lg text-xs transition">
+        📥 Descargar Excel (.xlsx)
+      </button>
+      <button id="btn-descargar-csv" class="w-1/2 bg-slate-700 hover:bg-slate-800 text-white font-semibold py-2 px-3 rounded-lg text-xs transition">
+        📥 Descargar CSV (.csv)
+      </button>
+    </div>
+    <p id="lbl-conteo" class="text-xs text-center text-slate-400">Estructuras en memoria: 0</p>
+  </div>
+
+  <!-- Motor Técnico Adaptativo -->
+  <script type="module">
+    const SECCIONES_MT = {
+      "caracteristicas_generales": {
+        titulo: "Características generales",
+        campos: {
+          tipo_poste: { 
+            label: "TIPO DE POSTE", 
+            opciones: ["CONCRETO", "MADERA", "METAL", "FIBRA DE VIDRIO-PRFV"], 
+            aliases: ["tipo de poste", "poste de", "material poste", "poste concreto", "poste madera", "poste metal", "cac", "cemento"] 
+          },
+          altura_poste: { 
+            label: "ALTURA DEL POSTE (M)", 
+            opciones: ["11", "13", "15", "9", "8"], 
+            aliases: ["altura poste", "altura", "metros", "de 13", "de 11", "de 15", "de 9", "de 8"] 
+          }
+        }
+      },
+      "corrosion_inclinacion": {
+        titulo: "Grado de corrosión e inclinación",
+        campos: {
+          estado_inclinacion: { 
+            label: "ESTADO DE INCLINACIÓN", 
+            opciones: ["NO PRESENTA", "MENOR A 5°", "MAYOR A 5°"], 
+            aliases: ["inclinacion", "inclinado", "plomo", "ladeado", "desplomado", "fuera de plomo", "inclinada"] 
+          },
+          corrosion_base: { 
+            label: "ESTADO DE CORROSIÓN EN LA BASE", 
+            opciones: [
+              "A =muy mal estado", 
+              "B1 = perdida de seccion en base", 
+              "B = concreto desprendido", 
+              "URGENTE desprendimiento, rajaduras leves. Medianamente bien", 
+              "CV =reforzado+ buen estado", 
+              "AV= reforzado + mal estado", 
+              "INOBSERVABLE"
+            ], 
+            aliases: ["corrosion base", "oxido base", "patas comidas", "carcomido", "fierro al aire", "encamisado", "dado refuerzo", "descascarado", "armadura expuesta en base"] 
+          },
+          corrosion_cuerpo_cac: { 
+            label: "CORROSIÓN CUERPO POSTE CONCRETO", 
+            opciones: ["buen estado", "rajaduras", "bajo", "alto"], 
+            aliases: ["cuerpo concreto", "fuste concreto", "rajado a media caña", "fisura longitudinal", "cascaron", "cuerpo rajado"] 
+          },
+          zocalo: { label: "ZÓCALO", opciones: ["SI", "NO"], aliases: ["zocalo", "collarin"] },
+          cimentado: { label: "CIMENTADO", opciones: ["SI", "NO"], aliases: ["cimentado", "cimentacion", "dado"] },
+          nivel_empotramiento: { label: "NIVEL DE EMPOTRAMIENTO", opciones: ["CONFORME", "MUY ENTERRADO", "DESCUBIERTO"], aliases: ["empotramiento", "enterrado", "tapado", "descubierto"] }
+        }
+      },
+      "mensulas_crucetas": {
+        titulo: "Ménsulas / crucetas",
+        campos: {
+          tipo_mensula: { label: "TIPO MÉNSULA / CRUCETA", opciones: ["MADERA", "CONCRETO"], aliases: ["tipo mensula", "tipo cruceta", "cruceta de"] },
+          estado_cruceta_cac: { label: "ESTADO DE CRUCETA CAC", opciones: ["RAJADA", "DESPRENDIMIENTO CONCRETO", "CORROSION/AGRIETAMIENTO", "BUEN ESTADO"], aliases: ["cruceta concreto", "armadura expuesta", "concreto desmoronado", "cruceta rajada"] },
+          estado_cruceta_madera: { label: "ESTADO DE CRUCETA MADERA", opciones: ["APOLILLADA", "REVIRADA", "BUEN ESTADO"], aliases: ["cruceta madera", "cruceta apolillada", "cruceta torcida", "alabeada"] },
+          ferreteria_soporte: { label: "ESTADO DE FERRETERÍA DE SOPORTE", opciones: ["SIN CORROSION/BUEN ESTADO", "CORROSION MEDIA", "CORROSION BAJA", "CORROSION ALTA"], aliases: ["ferreteria cruceta", "pernos soporte", "pernos podridos", "pernos oxidados"] }
+        }
+      },
+      "aisladores": {
+        titulo: "Aisladores",
+        campos: {
+          existen_aisladores: { label: "EXISTEN AISLADORES", opciones: ["SI", "NO"], aliases: ["existen aisladores", "tiene aisladores"] },
+          tipo_aislador: { label: "TIPO DE AISLADOR", opciones: ["PORCELANA", "POLIMERICO", "HIBRIDO"], aliases: ["tipo aislador", "material aislador", "sintetico", "goma", "siliconado", "loza", "campana"] },
+          contaminacion_aislador: { label: "CONTAMINACIÓN AISLADOR", opciones: ["BAJA POLUCION", "SIN POLUCION", "ALTA POLUCION MEDIO Y POCO CARBONIZADO (TARCKING CONSIDERABLE)", "POLUCION MEDIA"], aliases: ["contaminacion aislador", "polucion aislador", "embarrado", "salitre", "polvoriento", "guano"] },
+          descarga_aislador: { label: "DESCARGA AISLADOR", opciones: ["SIN DESCARGA", "ALTAMENTE CARBONIZADO (ALTO TRACKING)"], aliases: ["descarga aislador", "flameo aislador", "fogueado", "chisporroteado", "chispazo", "quemado"] },
+          estado_general_aislador: { label: "ESTADO GENERAL DEL AISLADOR", opciones: ["buen estado", "DAÑADO/REQUIERE CAMBIO"], aliases: ["estado general aislador", "aislador buen estado", "aislador dañado"] }
+        }
+      },
+      "retenida": {
+        titulo: "Retenida MT",
+        campos: {
+          existe_retenida: { label: "EXISTE RETENIDA MT", opciones: ["NO, Y NECESITA", "SI", "NO REQUIERE"], aliases: ["existe retenida", "tiene tirante", "viento"] },
+          tipo_retenida: { label: "TIPO DE RETENIDA", opciones: ["SIMPLE", "VIOLIN", "DOBLE-MULTIPLE", "RETENIDA AEREA"], aliases: ["tipo retenida", "tirante simple"] },
+          aislador_retenida: { label: "AISLADOR DE RETENIDA", opciones: ["CONFORME", "MAL UBICADO", "FUERA DE NORMA", "NO TIENE"], aliases: ["aislador retenida", "tipo nuez", "nuez rota", "huevo retenida"] },
+          estado_general_retenida: { label: "ESTADO GENERAL RETENIDA", opciones: ["buen estado", "REQUIERE MANTENIMIENTO", "REQUIERE CAMBIO", "DESTEMPLADA"], aliases: ["estado retenida", "tirante flojo", "cable suelto", "panza en la retenida", "sin tension", "blanda"] }
+        }
+      }
+    };
+
+    let extractor = null;
+    let embeddingsCatalogo = {};
+    let fuseInstancia = null;
+    let registrosSesion = [];
+    let registroEnProceso = {};
+    let timestampInicio = "";
+    let contadorActividad = 0;
+
+    // Normalizador de palabras numéricas dictadas
+    const PALABRAS_A_NUMEROS = {
+      "cero": 0, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
+      "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
+      "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15
+    };
+
+    function normalizarNumerosHablados(texto) {
+      let t = texto.toLowerCase();
+      for (const [palabra, num] of Object.entries(PALABRAS_A_NUMEROS)) {
+        const regex = new RegExp(`\\b${palabra}\\b`, 'gi');
+        t = t.replace(regex, num.toString());
+      }
+      return t;
+    }
+
+    // Inicializar Fuse.js
+    function inicializarFuzzy() {
+      const itemsFuzzy = [];
+      for (const [secKey, secData] of Object.entries(SECCIONES_MT)) {
+        for (const [cKey, cConfig] of Object.entries(secData.campos)) {
+          if (cConfig.opciones) {
+            cConfig.opciones.forEach(opc => {
+              itemsFuzzy.push({ secKey, cKey, targetOpcion: opc, alias: opc.toLowerCase() });
+            });
+            cConfig.aliases.forEach(al => {
+              itemsFuzzy.push({ secKey, cKey, targetOpcion: null, alias: al.toLowerCase() });
+            });
+          }
+        }
+      }
+      fuseInstancia = new Fuse(itemsFuzzy, {
+        keys: ['alias'],
+        threshold: 0.25,
+        ignoreLocation: true
+      });
+    }
+    inicializarFuzzy();
+
+    // Inicializar Transformers.js
+    async function inicializarIA() {
+      try {
+        extractor = await window.pipeline('feature-extraction', 'Xenova/paraphrase-multilingual-MiniLM-L12-v2');
+        const badge = document.getElementById('badge-ia');
+        badge.innerText = "Capa 3: Semántica IA ✓";
+        badge.className = "text-[10px] bg-slate-800 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800";
+
+        for (const [secKey, secData] of Object.entries(SECCIONES_MT)) {
+          for (const [cKey, cConfig] of Object.entries(secData.campos)) {
+            if (cConfig.opciones) {
+              embeddingsCatalogo[`${secKey}.${cKey}`] = [];
+              for (const opc of cConfig.opciones) {
+                const out = await extractor(opc, { pooling: 'mean', normalize: true });
+                embeddingsCatalogo[`${secKey}.${cKey}`].push({ opcion: opc, vector: Array.from(out.data) });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        document.getElementById('badge-ia').innerText = "Capa 3: Desactivada";
+      }
+    }
+    inicializarIA();
+
+    function cosSim(vecA, vecB) {
+      let dot = 0.0, normA = 0.0, normB = 0.0;
+      for (let i = 0; i < vecA.length; i++) {
+        dot += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+      }
+      return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+    }
+
+    // Tokenizador inteligente por conectores en lugar de solo comas
+    function dividirEnFragmentos(texto) {
+      return texto
+        .replace(/\.\.\./g, ',')
+        .replace(/;/g, ',')
+        .replace(/\b(y además|además|pero|con|sin|y tiene|no tiene|cuenta con)\b/gi, ',$1,')
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s.length > 1);
+    }
+
+    // EL MOTOR ADAPTATIVO
+    async function procesarOracionAdaptativa(textoCrudo) {
+      const extracciones = {};
+      const texto = normalizarNumerosHablados(textoCrudo);
+
+      // ==========================================
+      // CAPA 1: EXTRACCIONES DIRECTAS DETERMINISTAS
+      // ==========================================
+
+      // 1. Inclinación (números o palabras)
+      const idInc = "corrosion_inclinacion.estado_inclinacion";
+      if (!registroEnProceso[idInc]) {
+        const mGrados = texto.match(/(\d+)\s*(?:°|grados?)/i);
+        if (mGrados) {
+          const g = parseInt(mGrados[1]);
+          extracciones[idInc] = g > 5 ? "MAYOR A 5°" : (g > 0 ? "MENOR A 5°" : "NO PRESENTA");
+        } else if (/\b(sin inclinacion|al plomo|a plomo|bien aplomado|no presenta inclinacion)\b/i.test(texto)) {
+          extracciones[idInc] = "NO PRESENTA";
+        } else if (/\b(muy inclinado|bastante inclinado|peligro de caida)\b/i.test(texto)) {
+          extracciones[idInc] = "MAYOR A 5°";
+        }
+      }
+
+      // 2. Altura de Poste
+      const idAlt = "caracteristicas_generales.altura_poste";
+      if (!registroEnProceso[idAlt]) {
+        const mAlt = texto.match(/\b(11|13|15|9|8)\b\s*(?:m|mts|metros)?/i);
+        if (mAlt && (mAlt[0].includes("m") || /\b(altura|poste|mide|tamano|largo)\b/i.test(texto) || /\b(de 13|de 11|de 15|de 9|de 8)\b/i.test(texto))) {
+          extracciones[idAlt] = mAlt[1];
+        }
+      }
+
+      // 3. Ausencia Global de Retenida
+      const idRet = "retenida.existe_retenida";
+      if (!registroEnProceso[idRet] && /\b(sin retenida|no tiene retenida|no hay retenida|no requiere retenida)\b/i.test(texto)) {
+        extracciones[idRet] = "NO REQUIERE";
+      }
+
+      // 4. Material del Poste (Directo si acompaña a poste o estructura)
+      const idTipoPoste = "caracteristicas_generales.tipo_poste";
+      if (!registroEnProceso[idTipoPoste]) {
+        if (/\b(poste.*concreto|concreto.*poste|cac|poste de cemento)\b/i.test(texto)) extracciones[idTipoPoste] = "CONCRETO";
+        else if (/\b(poste.*madera|madera.*poste)\b/i.test(texto)) extracciones[idTipoPoste] = "MADERA";
+        else if (/\b(poste.*metal|metalico|fierro)\b/i.test(texto)) extracciones[idTipoPoste] = "METAL";
+      }
+
+      // ==========================================
+      // CAPA 2 Y 3: ANÁLISIS POR FRAGMENTOS DESLIZANTES
+      // ==========================================
+      const fragmentos = dividirEnFragmentos(texto);
+
+      for (const frag of fragmentos) {
+        const fragLow = frag.toLowerCase();
+
+        for (const [secKey, secData] of Object.entries(SECCIONES_MT)) {
+          for (const [cKey, cConfig] of Object.entries(secData.campos)) {
+            const idCampo = `${secKey}.${cKey}`;
+
+            // Si el campo ya tiene dato (en memoria o extraído en este ciclo), se respeta
+            if (registroEnProceso[idCampo] || extracciones[idCampo]) continue;
+
+            const opciones = cConfig.opciones;
+            if (!opciones) continue;
+
+            // Detección de binarios SI / NO (Soporta negación antes o después)
+            if (JSON.stringify(opciones) === JSON.stringify(["SI", "NO"])) {
+              for (const al of cConfig.aliases) {
+                const regexAlias = new RegExp(`\\b${al}\\b`, 'i');
+                if (regexAlias.test(fragLow)) {
+                  // Revisa si hay negación en ese mismo fragmento
+                  const tieneNegacion = /\b(sin|no|falta|no tiene|no cuenta|cero|nada)\b/i.test(fragLow);
+                  extracciones[idCampo] = tieneNegacion ? "NO" : "SI";
+                  break;
+                }
+              }
+              if (extracciones[idCampo]) continue;
+            }
+
+            // Fuzzy Matching (Capa 2)
+            if (fuseInstancia) {
+              const resFuzzy = fuseInstancia.search(fragLow);
+              const match = resFuzzy.find(r => r.item.secKey === secKey && r.item.cKey === cKey);
+              if (match && match.score <= 0.20 && match.item.targetOpcion) {
+                extracciones[idCampo] = match.item.targetOpcion;
+                continue;
+              }
+            }
+
+            // IA Semántica (Capa 3 - Umbral al 55%)
+            if (extractor && embeddingsCatalogo[idCampo]) {
+              const coincideAlias = cConfig.aliases.some(al => new RegExp(`\\b${al}\\b`, 'i').test(fragLow));
+              if (coincideAlias || fragLow.length > 5) {
+                const outUser = await extractor(frag, { pooling: 'mean', normalize: true });
+                const vecUser = Array.from(outUser.data);
+
+                let bestScore = 0;
+                let bestOp = null;
+                for (const item of embeddingsCatalogo[idCampo]) {
+                  const score = cosSim(vecUser, item.vector);
+                  if (score > bestScore) {
+                    bestScore = score;
+                    bestOp = item.opcion;
+                  }
+                }
+
+                if (bestScore >= 0.55) {
+                  extracciones[idCampo] = bestOp;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return extracciones;
+    }
+
+    // Render del Monitor
+    function renderMonitor() {
+      const cont = document.getElementById('monitor-valores');
+      cont.innerHTML = "";
+      let tieneValores = false;
+
+      for (const [secKey, secData] of Object.entries(SECCIONES_MT)) {
+        for (const [cKey, cConfig] of Object.entries(secData.campos)) {
+          const id = `${secKey}.${cKey}`;
+          if (registroEnProceso[id]) {
+            tieneValores = true;
+            const div = document.createElement('div');
+            div.className = "flex flex-col bg-slate-900 p-2 rounded border border-slate-700 gap-1";
+            div.id = `card-${id}`;
+            div.innerHTML = `
+              <div class="flex justify-between items-center">
+                <span class="text-slate-300 font-medium">${cConfig.label}</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-emerald-400 font-bold">${registroEnProceso[id]}</span>
+                  <button class="btn-editar bg-slate-700 hover:bg-slate-600 px-2 py-0.5 rounded text-sky-400" data-id="${id}">✏️</button>
+                  <button class="btn-borrar bg-slate-700 hover:bg-slate-600 px-2 py-0.5 rounded text-rose-400" data-id="${id}">🗑️</button>
+                </div>
+              </div>
+              <div id="editor-${id}" class="hidden mt-2 pt-2 border-t border-slate-800"></div>
+            `;
+            cont.appendChild(div);
+          }
+        }
+      }
+
+      if (!tieneValores) cont.innerHTML = '<p class="text-slate-500 italic">No hay valores detectados aún.</p>';
+
+      document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => abrirEditor(e.target.dataset.id)));
+      document.querySelectorAll('.btn-borrar').forEach(b => b.addEventListener('click', e => {
+        delete registroEnProceso[e.target.dataset.id];
+        renderMonitor();
+      }));
+    }
+
+    function abrirEditor(id) {
+      const [secKey, cKey] = id.split('.');
+      const cConfig = SECCIONES_MT[secKey].campos[cKey];
+      const div = document.getElementById(`editor-${id}`);
+      if (!div.classList.contains('hidden')) { div.classList.add('hidden'); return; }
+      div.classList.remove('hidden');
+      div.innerHTML = "";
+
+      if (cConfig.opciones) {
+        const sel = document.createElement('select');
+        sel.className = "w-full p-1 text-xs mb-1";
+        cConfig.opciones.forEach(op => {
+          const opt = document.createElement('option');
+          opt.value = op; opt.innerText = op;
+          if (op === registroEnProceso[id]) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        const btn = document.createElement('button');
+        btn.className = "w-full bg-blue-600 text-white font-semibold py-1 rounded text-xs mt-1";
+        btn.innerText = "Confirmar Cambio";
+        btn.onclick = () => { registroEnProceso[id] = sel.value; renderMonitor(); };
+        div.appendChild(sel); div.appendChild(btn);
+      }
+    }
+
+    // Botones
+    document.getElementById('btn-iniciar').addEventListener('click', () => {
+      const d = new Date();
+      timestampInicio = d.toISOString().replace('T', ' ').substring(0, 19);
+      contadorActividad++;
+      document.getElementById('lbl-timestamp').innerText = `Timestamp: ${timestampInicio}`;
+      registroEnProceso = {};
+      renderMonitor();
+    });
+
+    document.getElementById('btn-procesar').addEventListener('click', async () => {
+      const txt = document.getElementById('txt-dictado').value;
+      if (!txt.trim()) return;
+      const res = await procesarOracionAdaptativa(txt);
+      Object.assign(registroEnProceso, res);
+      renderMonitor();
+      document.getElementById('txt-dictado').value = "";
+    });
+
+    document.getElementById('btn-guardar').addEventListener('click', () => {
+      const cod = document.getElementById('cod_activo').value.trim();
+      if (!cod) { alert("Ingrese el Código de Activo Principal."); return; }
+      const fila = {
+        "Fecha/Hora": timestampInicio || new Date().toISOString().replace('T', ' ').substring(0, 19),
+        "Cód. Activo": cod,
+        "Responsable": document.getElementById('responsable').value.trim()
+      };
+      for (const [secKey, secData] of Object.entries(SECCIONES_MT)) {
+        for (const [cKey, cConfig] of Object.entries(secData.campos)) {
+          fila[`${secData.titulo} - ${cConfig.label}`] = registroEnProceso[`${secKey}.${cKey}`] || "";
+        }
+      }
+      registrosSesion.push(fila);
+      registroEnProceso = {};
+      document.getElementById('cod_activo').value = "";
+      document.getElementById('lbl-conteo').innerText = `Estructuras en memoria: ${registrosSesion.length}`;
+      renderMonitor();
+      alert(`Estructura ${cod} guardada con éxito.`);
+    });
+
+    document.getElementById('btn-descargar-excel').addEventListener('click', () => {
+      if (registrosSesion.length === 0) return alert("No hay datos para exportar.");
+      const ws = XLSX.utils.json_to_sheet(registrosSesion);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Inspecciones_MT");
+      XLSX.writeFile(wb, `inspeccion_MT_${Date.now()}.xlsx`);
+    });
+
+    document.getElementById('btn-descargar-csv').addEventListener('click', () => {
+      if (registrosSesion.length === 0) return alert("No hay datos para exportar.");
+      const ws = XLSX.utils.json_to_sheet(registrosSesion);
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `inspeccion_MT_${Date.now()}.csv`;
+      link.click();
+    });
+  </script>
+</body>
+</html>
