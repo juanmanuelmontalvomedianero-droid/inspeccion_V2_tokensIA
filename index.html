@@ -3,12 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Laboratorio NLU - Entrenamiento Dual Redes MT</title>
+  <title>Inspección MT - NLU Híbrido, Softmax CCE & Gráficas</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
-    body { background-color: #071322; color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .panel { background-color: #0f2238; border: 1px solid #1e3a5f; border-radius: 10px; }
-    input, select, textarea { background-color: #091829 !important; color: #f8fafc !important; border: 1px solid #1e3a5f !important; border-radius: 6px; }
+    :root {
+      --bg-dark: #071322;
+      --panel-dark: #0f2238;
+      --panel-border: #1e3a5f;
+      --accent-cyan: #38bdf8;
+      --accent-green: #10b981;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .panel {
+      background-color: var(--panel-dark);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+    }
+    input, select, textarea {
+      background-color: #091829 !important;
+      color: #f8fafc !important;
+      border: 1px solid var(--panel-border) !important;
+      border-radius: 6px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none !important;
+      border-color: var(--accent-cyan) !important;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) !important;
+    }
     .badge-math { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
   </style>
 </head>
@@ -17,430 +44,1149 @@
   <!-- CABECERA -->
   <header class="mb-3 border-b border-slate-700 pb-2 flex justify-between items-center">
     <div>
-      <h1 class="text-base font-black text-sky-400">⚡ LABORATORIO DE ENTRENAMIENTO NLU</h1>
-      <p class="text-[10px] text-slate-400">Optimización por Descenso de Gradiente (SGD)</p>
+      <h1 class="text-base font-black text-sky-400 flex items-center gap-1.5">
+        <span>⚡</span> SISTEMA DE INSPECCIÓN MT
+      </h1>
+      <p class="text-[10px] text-slate-400">Offline NLU: Softmax + CCE & Telemetría en Vivo</p>
     </div>
-    <span class="text-[10px] bg-slate-800 text-teal-400 border border-teal-700 px-2 py-1 rounded font-mono">
-      Offline Engine
-    </span>
+    <button id="btn-toggle-modo" class="bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg shadow transition">
+      Modo: Laboratorio (Pesos)
+    </button>
   </header>
 
-  <!-- 1. CONSOLA DE PESOS OFICIALES PARA ANOTAR PERSONALMENTE -->
-  <section class="panel p-3 mb-3 border-l-4 border-l-amber-400">
-    <div class="flex justify-between items-center mb-2">
-      <h2 class="text-xs font-bold text-amber-300 uppercase tracking-wider">
-        📋 Matriz de Pesos Resultantes (Para Apunte)
-      </h2>
-      <button id="btn-copiar-pesos" class="text-[10px] bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded transition">
-        📋 Copiar Pesos
-      </button>
-    </div>
-
-    <!-- TARJETAS DE VALORES EXACTOS -->
-    <div class="grid grid-cols-3 gap-2 text-center text-xs mb-2">
-      <div class="bg-slate-950 p-2 rounded border border-slate-800">
-        <span class="text-[10px] text-slate-400 block">W_Sintáctico (Ws)</span>
-        <span id="txt-val-wsint" class="text-sm font-bold text-sky-400 badge-math">0.7000</span>
-      </div>
-      <div class="bg-slate-950 p-2 rounded border border-slate-800">
-        <span class="text-[10px] text-slate-400 block">W_Semántico (Wm)</span>
-        <span id="txt-val-wsem" class="text-sm font-bold text-emerald-400 badge-math">0.3000</span>
-      </div>
-      <div class="bg-slate-950 p-2 rounded border border-slate-800">
-        <span class="text-[10px] text-slate-400 block">Bias / Sesgo (b)</span>
-        <span id="txt-val-bias" class="text-sm font-bold text-amber-400 badge-math">0.0000</span>
-      </div>
-    </div>
-
-    <!-- STRING FORMAL PARA COPIAR EN LIBRETA / REPORTE -->
-    <div class="bg-slate-950 p-2 rounded border border-slate-800 text-[11px] font-mono text-slate-300 flex justify-between items-center">
-      <span id="cadena-pesos" class="truncate">W = [Ws: 0.7000, Wm: 0.3000, b: 0.0000] | Época: 0</span>
-      <button id="btn-descargar-txt" class="text-[10px] text-sky-400 underline ml-2 shrink-0">Descargar .txt</button>
-    </div>
+  <!-- SELECTOR DE MODALIDADES OPERATIVAS -->
+  <section class="panel p-3 mb-3">
+    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+      Tipo de Inspección Operativa:
+    </label>
+    <select id="sel-tipo-inspeccion" class="w-full p-2 text-xs font-bold text-sky-300">
+      <option value="VISUAL" selected>1. INSP. VISUAL (Matriz de Cuadrilla)</option>
+      <option value="TERMOGRAFICA">2. INSP. TERMOGRÁFICA (Puntos Calientes / ΔT)</option>
+      <option value="PARAMETROS_ELECTRICOS">3. INSP. PARÁMETROS ELÉCTRICOS (V, I, Cos φ, PAT)</option>
+    </select>
   </section>
 
-  <!-- 2. BANCO DE PRUEBA Y EVALUACIÓN POR ORACIÓN -->
-  <section class="panel p-3 mb-3 space-y-3">
-    <div class="flex justify-between items-center">
-      <h3 class="text-xs font-bold text-sky-400 uppercase">Entrada de Oración a Evaluar</h3>
-      <span id="lbl-tasa-aprendizaje" class="text-[10px] text-slate-400 font-mono">η (Tasa): 0.08</span>
-    </div>
+  <!-- ========================================================================= -->
+  <!-- MODULO 1: LABORATORIO DE ENTRENAMIENTO, MATEMÁTICA Y GRÁFICAS            -->
+  <!-- ========================================================================= -->
+  <div id="contenedor-laboratorio" class="space-y-3">
+    
+    <!-- 1.1 PANEL DE PESOS OFICIALES PARA ANOTACIÓN -->
+    <section class="panel p-3 border-l-4 border-l-amber-400">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xs font-bold text-amber-300 uppercase tracking-wider">
+          📋 Pesos Resultantes (Para Apunte Personal)
+        </h2>
+        <button id="btn-copiar-pesos" class="text-[10px] bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded transition">
+          📋 Copiar Pesos
+        </button>
+      </div>
 
-    <div>
-      <textarea id="in-frase" rows="2" placeholder="Dicta la frase de campo: 'Poste concreto 13 metros con base rajada', 'DMS incumple predio a 1.8 metros con manga'..." class="w-full p-2 text-xs"></textarea>
-    </div>
+      <div class="grid grid-cols-2 gap-2 text-center text-xs mb-2">
+        <div class="bg-slate-950 p-2 rounded border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">W_Sintáctico (Ws)</span>
+          <span id="txt-val-wsint" class="text-sm font-bold text-sky-400 badge-math">0.7000</span>
+        </div>
+        <div class="bg-slate-950 p-2 rounded border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">W_Semántico (Wm)</span>
+          <span id="txt-val-wsem" class="text-sm font-bold text-emerald-400 badge-math">0.3000</span>
+        </div>
+      </div>
 
-    <div class="grid grid-cols-2 gap-2">
+      <div class="bg-slate-950 p-2 rounded border border-slate-800 text-[11px] font-mono text-slate-300 flex justify-between items-center">
+        <span id="cadena-pesos" class="truncate">W = [Ws: 0.7000, Wm: 0.3000] | Época: 0</span>
+        <button id="btn-descargar-txt" class="text-[10px] text-sky-400 underline ml-2 shrink-0">Descargar .json</button>
+      </div>
+    </section>
+
+    <!-- 1.2 GRÁFICAS DE EVALUACIÓN DE ENTRENAMIENTO EN VIVO (CANVAS) -->
+    <section class="panel p-3 space-y-3">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wide">
+          📈 Gráficas de Convergencia del Modelo
+        </h3>
+        <span id="lbl-estado-convergencia" class="text-[10px] font-mono text-emerald-400">Estado: Esperando datos</span>
+      </div>
+
+      <!-- GRÁFICA A: CURVA DE PÉRDIDA CCE -->
       <div>
-        <label class="block text-[10px] text-slate-400 mb-1">Clase Mayor:</label>
-        <select id="sel-clase" class="w-full p-2 text-xs font-semibold text-amber-300">
-          <option value="Poste">Poste</option>
-          <option value="Seccionadores / Cut Out">Seccionadores / Cut Out</option>
-          <option value="DMS">DMS</option>
-          <option value="Aisladores">Aisladores</option>
-          <option value="Puesta a tierra / PAT">Puesta a tierra / PAT</option>
-          <option value="Retenida">Retenida</option>
-        </select>
+        <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+          <span>Curva de Pérdida (Loss CCE vs. Épocas):</span>
+          <span id="lbl-loss-val" class="text-purple-400 font-mono font-bold">L = 0.0000</span>
+        </div>
+        <canvas id="canvas-loss" width="500" height="110" class="w-full bg-slate-950 rounded border border-slate-800"></canvas>
       </div>
+
+      <!-- GRÁFICA B: EVOLUCIÓN DE PESOS WS VS WM -->
       <div>
-        <label class="block text-[10px] text-slate-400 mb-1">Subclase a entrenar:</label>
-        <select id="sel-subclase" class="w-full p-2 text-xs font-semibold text-sky-300">
-          <!-- Dinámico -->
-        </select>
+        <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+          <span>Trayectoria de Pesos (<span class="text-sky-400 font-bold">Ws</span> vs. <span class="text-emerald-400 font-bold">Wm</span>):</span>
+          <span class="text-slate-500 font-mono text-[9px]">Escala 0.0 a 1.0</span>
+        </div>
+        <canvas id="canvas-weights" width="500" height="90" class="w-full bg-slate-950 rounded border border-slate-800"></canvas>
       </div>
-    </div>
+    </section>
 
-    <div class="flex items-center justify-between bg-slate-950 p-2 rounded border border-slate-800">
-      <span class="text-xs text-slate-300">Etiqueta esperada (Target Y):</span>
-      <div class="flex gap-2">
-        <label class="flex items-center gap-1 text-xs text-emerald-400 cursor-pointer">
-          <input type="radio" name="target-val" value="1.0" checked class="accent-emerald-500"> Positivo (1.0)
+    <!-- 1.3 BANCO DE PRUEBAS SUPERVISADO -->
+    <section class="panel p-3 space-y-3">
+      <div class="flex justify-between items-center">
+        <h3 class="text-xs font-bold text-sky-400 uppercase">Oración de Calibración</h3>
+        <span id="lbl-eta" class="text-[10px] text-slate-400 font-mono">η (Tasa): 0.08</span>
+      </div>
+
+      <div>
+        <textarea id="in-frase-train" rows="2" placeholder="Ej: poste de prfb 13 metros con corrosion tipo b1 en base, dms incumple cable de telecomunicaciones distancia un metro sesenta con manga..." class="w-full p-2 text-xs"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-[10px] text-slate-400 mb-1">Clase Mayor:</label>
+          <select id="sel-clase-train" class="w-full p-2 text-xs font-semibold text-amber-300"></select>
+        </div>
+        <div>
+          <label class="block text-[10px] text-slate-400 mb-1">Subclase:</label>
+          <select id="sel-subclase-train" class="w-full p-2 text-xs font-semibold text-sky-300"></select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-[10px] text-slate-400 mb-1">Etiqueta Correcta Esperada (Target Y):</label>
+        <select id="sel-target-train" class="w-full p-2 text-xs font-mono font-bold text-emerald-400 border-emerald-800"></select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button id="btn-inferir-cce" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-md text-xs transition">
+          🔍 1. Inferencia Softmax
+        </button>
+        <button id="btn-entrenar-cce" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-md text-xs transition">
+          📈 2. Aplicar Gradiente (CCE)
+        </button>
+      </div>
+    </section>
+
+    <!-- 1.4 TELEMETRÍA DE PROBABILIDADES SOFTMAX -->
+    <section class="panel p-3 text-xs">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wide">
+          🔬 Distribución de Probabilidades Softmax P(k)
+        </h3>
+        <span id="tel-loss-cce" class="font-mono text-purple-400 font-bold text-[11px]">Loss: 0.0000</span>
+      </div>
+
+      <div id="contenedor-probs" class="space-y-1.5 badge-math text-[11px]">
+        <p class="text-slate-500 italic text-center py-2">Sin inferencia evaluada aún.</p>
+      </div>
+    </section>
+
+    <!-- 1.5 HISTORIAL DE CONVERGENCIA -->
+    <section class="panel p-3">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-xs font-bold text-slate-300 uppercase">Bitácora de Convergencia</h3>
+        <button id="btn-limpiar-historial" class="text-[10px] text-slate-400 hover:text-rose-400">Limpiar</button>
+      </div>
+      <div class="max-h-36 overflow-y-auto border border-slate-800 rounded bg-slate-950 text-[10px] badge-math">
+        <table class="w-full text-left border-collapse">
+          <thead class="bg-slate-900 sticky top-0 border-b border-slate-800 text-slate-400">
+            <tr>
+              <th class="p-1">Época</th>
+              <th class="p-1">Target</th>
+              <th class="p-1">P(Target)</th>
+              <th class="p-1">Loss CCE</th>
+              <th class="p-1">Ws</th>
+              <th class="p-1">Wm</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-historial-body">
+            <tr>
+              <td colspan="6" class="p-2 text-center text-slate-500 italic">Sin iteraciones registradas.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODULO 2: INSPECCIÓN OPERATIVA EN CAMPO (CLASE ➔ VALOR)                   -->
+  <!-- ========================================================================= -->
+  <main id="contenedor-operativo" class="hidden space-y-3">
+    
+    <!-- ENTRADA POR VOZ CONTINUA -->
+    <section class="panel p-3">
+      <div class="flex justify-between items-center mb-1">
+        <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Dictado Continuo (Se auto-segmenta):
         </label>
-        <label class="flex items-center gap-1 text-xs text-rose-400 cursor-pointer">
-          <input type="radio" name="target-val" value="0.0" class="accent-rose-500"> Negativo (0.0)
-        </label>
+        <span class="text-[10px] text-emerald-400 font-mono">Micro Local Activo</span>
       </div>
+      <textarea id="txt-dictado-operativo" rows="3" placeholder="Dicta corrido: 'Poste concreto 13 metros corrosion tipo b en base seccionador cut out con caña caida dms incumple cable de telecomunicaciones distancia un metro sesenta con manga'..." class="w-full p-2 text-xs mb-2"></textarea>
+      
+      <div class="grid grid-cols-2 gap-2">
+        <button id="btn-procesar-operativo" class="bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow">
+          <span>⚡</span> Clasificar Dictado
+        </button>
+        <button id="btn-foto-clase" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow">
+          <span>📷</span> Foto en Carpeta
+        </button>
+      </div>
+      <input type="file" id="input-camara-file" accept="image/*" capture="environment" class="hidden">
+    </section>
+
+    <!-- CLÁUSULAS AISLADAS POR EL SEGMENTADOR -->
+    <div id="box-segmentos" class="hidden panel p-2.5 bg-slate-950/70 border border-slate-800 text-[11px]">
+      <span class="text-slate-400 font-bold block mb-1">Cláusulas Aisladas por Segmentación:</span>
+      <div id="lista-segmentos-ui" class="space-y-1 font-mono text-[10px] text-sky-300"></div>
     </div>
 
-    <!-- BOTONES DE INFERENCIA Y ACTUALIZACIÓN DE GRADIENTE -->
-    <div class="grid grid-cols-2 gap-2 pt-1">
-      <button id="btn-inferir" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-md text-xs transition">
-        🔍 1. Medir Valores y Error
+    <!-- EXPLORADOR DE CLASES MAYORES -->
+    <section class="panel p-3">
+      <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+        Explorar Activo / Clase Mayor:
+      </label>
+      <select id="sel-clase-mayor-op" class="w-full p-2 text-xs font-bold text-amber-300"></select>
+    </section>
+
+    <!-- ACTIVO SELECCIONADO: DIAGRAMA, SUBCLASES Y FOTOGRAFÍAS -->
+    <section id="card-activo" class="panel p-3.5 border-l-4 border-l-sky-400">
+      <div class="flex items-center gap-3 pb-2.5 border-b border-slate-700/80 mb-2.5">
+        <div id="svg-activo" class="w-20 h-20 bg-slate-950 rounded-lg p-1.5 border border-slate-800 flex items-center justify-center shrink-0"></div>
+        <div>
+          <span class="text-[9px] font-mono text-sky-400 uppercase tracking-widest">Activo Inspeccionado</span>
+          <h2 id="titulo-activo" class="text-sm font-extrabold text-white">POSTE</h2>
+          <span id="badge-fotos-activo" class="inline-block mt-1 text-[9px] bg-slate-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800/50 font-mono">
+            📁 Fotos: 0
+          </span>
+        </div>
+      </div>
+
+      <!-- LISTA DE SUBCLASES CON FORMATO: CLASE ➔ VALOR -->
+      <div class="mb-3">
+        <div class="flex justify-between items-center mb-1.5">
+          <h3 class="text-[11px] font-bold text-sky-400 uppercase">Subclases del Activo:</h3>
+          <span class="text-[9px] text-slate-500 italic">clase ➔ valor</span>
+        </div>
+        <div id="lista-subclases-op" class="space-y-1.5 max-h-64 overflow-y-auto pr-1"></div>
+      </div>
+
+      <!-- FOTOGRAFÍAS DE ESTA CARPETA -->
+      <div class="border-t border-slate-800/80 pt-2">
+        <span class="text-[10px] font-bold text-slate-400 block mb-1">Evidencia Fotográfica de esta Clase:</span>
+        <div id="galeria-activo" class="grid grid-cols-4 gap-1.5 min-h-[45px] bg-slate-950/40 p-1.5 rounded-lg border border-slate-800">
+          <p class="text-[10px] text-slate-500 italic col-span-4 text-center py-2">Sin fotografías aún.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPORTACIÓN TOTAL A ZIP EN CARPETAS -->
+    <section class="panel p-3 space-y-2">
+      <div class="flex justify-between items-center text-xs">
+        <span class="text-slate-400">Total variables registradas:</span>
+        <span id="lbl-total-llenadas" class="font-mono font-bold text-emerald-400">0 variables</span>
+      </div>
+      <button id="btn-exportar-zip" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 font-bold py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition">
+        <span>📦</span> Exportar Estructura y Fotos por Carpetas (.ZIP)
       </button>
-      <button id="btn-ajustar" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-md text-xs transition">
-        📈 2. Actualizar Pesos (SGD)
-      </button>
-    </div>
-  </section>
+    </section>
+  </main>
 
-  <!-- 3. DESGLOSE MATEMÁTICO DE LA ORACIÓN EN TIEMPO REAL -->
-  <section class="panel p-3 mb-3 text-xs">
-    <h3 class="text-xs font-bold text-slate-300 mb-2 uppercase tracking-wide">
-      🔬 Telemetría de la Inferencia:
-    </h3>
-    <div class="grid grid-cols-2 gap-2 badge-math text-[11px]">
-      <div class="bg-slate-950 p-2 rounded border border-slate-800">
-        <span class="text-slate-400 block text-[10px]">Valor Sintáctico (S_sint):</span>
-        <span id="tel-sint" class="text-sky-400 font-bold text-sm">0.0000</span>
-      </div>
-      <div class="bg-slate-950 p-2 rounded border border-slate-800">
-        <span class="text-slate-400 block text-[10px]">Valor Semántico (S_sem):</span>
-        <span id="tel-sem" class="text-emerald-400 font-bold text-sm">0.0000</span>
-      </div>
-      <div class="bg-slate-950 p-2 rounded border border-slate-800">
-        <span class="text-slate-400 block text-[10px]">Salida Calculada (Ŷ):</span>
-        <span id="tel-yhat" class="text-amber-400 font-bold text-sm">0.0000</span>
-      </div>
-      <div class="bg-slate-950 p-2 rounded border border-slate-800">
-        <span class="text-slate-400 block text-[10px]">Error Instantáneo (e = Y - Ŷ):</span>
-        <span id="tel-err" class="text-rose-400 font-bold text-sm">0.0000</span>
-      </div>
-    </div>
-    <div class="mt-2 bg-slate-950 p-2 rounded border border-slate-800 flex justify-between items-center text-[11px] badge-math">
-      <span class="text-slate-400">Pérdida Cuadrática (Loss = ½ e²):</span>
-      <span id="tel-loss" class="text-purple-400 font-bold">0.000000</span>
-    </div>
-  </section>
-
-  <!-- 4. HISTORIAL DE ENTRENAMIENTO POR ÉPOCAS / ORACIONES -->
-  <section class="panel p-3">
-    <div class="flex justify-between items-center mb-2">
-      <h3 class="text-xs font-bold text-slate-300 uppercase">Bitácora de Épocas / Gradientes</h3>
-      <button id="btn-limpiar-historial" class="text-[10px] text-slate-400 hover:text-rose-400">Limpiar</button>
-    </div>
-    <div class="max-h-52 overflow-y-auto border border-slate-800 rounded bg-slate-950 text-[10px] badge-math">
-      <table class="w-full text-left border-collapse">
-        <thead class="bg-slate-900 sticky top-0 border-b border-slate-800 text-slate-400">
-          <tr>
-            <th class="p-1.5">Época</th>
-            <th class="p-1.5">S_sint</th>
-            <th class="p-1.5">S_sem</th>
-            <th class="p-1.5">Error (e)</th>
-            <th class="p-1.5">Nuevo Ws</th>
-            <th class="p-1.5">Nuevo Wm</th>
-          </tr>
-        </thead>
-        <tbody id="tabla-historial-body">
-          <tr>
-            <td colspan="6" class="p-3 text-center text-slate-500 italic">No hay iteraciones registradas aún.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- MOTOR MATEMÁTICO Y DE ENTRENAMIENTO -->
+  <!-- ========================================================================= -->
+  <!-- SCRIPT CON EL CATÁLOGO MAESTRO, CCE LOSS, CANVAS & EXPORTADOR ZIP         -->
+  <!-- ========================================================================= -->
   <script>
-    // ESQUEMA DE ENTIDADES EXTRAÍDAS DE LA LIBRETA TÉCNICA
-    const ESQUEMA_TOKENS = {
+    // ========================================================================
+    // 1. CATÁLOGO MAESTRO CON TODAS LAS REGLAS ACTUALIZADAS
+    // ========================================================================
+    const CATALOGO_MAESTRO = {
       "Poste": {
-        subclases: ["Material", "Altura", "Estado Base", "Estado Inclinación", "Estado Cimentación"],
-        tokens: {
-          "Material": ["concreto", "cemento", "cac", "madera", "metal", "fierro", "prfv"],
-          "Altura": ["13", "11", "15", "9", "8", "metros", "m", "alto"],
-          "Estado Base": ["carcomida", "fisurada", "buen estado", "concreto desprendido", "perdida de seccion", "armadura expuesta"],
-          "Estado Inclinación": ["inclinado", "mayor a 5", "menor a 5", "al plomo", "recto", "desplomado"],
-          "Estado Cimentación": ["con cimentacion", "sin cimentacion", "dado", "fundacion"]
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><line x1="50" y1="95" x2="50" y2="15"/><line x1="30" y1="25" x2="70" y2="25"/><line x1="40" y1="95" x2="60" y2="95"/><circle cx="50" cy="15" r="4" class="fill-sky-400"/></svg>`,
+        campos: {
+          "Estado Rotulado": { tipo: "categoria", opciones: ["CONFORME", "BORROSO / ILEGIBLE", "NO TIENE"] },
+          "Estado Etiquetado": { tipo: "categoria", opciones: ["CONFORME", "DETERIORADO", "NO TIENE"] },
+          "Código": { tipo: "texto_libre" },
+          "Marca": { tipo: "texto_libre" },
+          "Material": { tipo: "categoria", opciones: ["CONCRETO", "MADERA", "METAL", "PRFV"] },
+          "Altura": { tipo: "categoria", opciones: ["8 m", "9 m", "11 m", "12 m", "13 m", "14 m", "15 m"] },
+          "Estado Cimentación": { tipo: "categoria", opciones: ["CONFORME", "EXPUESTA / SOCAVADA", "SIN DADO", "FISURADA"] },
+          "Propietario": { tipo: "categoria", opciones: ["LDS", "TERCEROS / PARTICULAR"] },
+          "Estado Inclinación": { tipo: "hibrido_num_cat", opciones: ["NO PRESENTA", "MENOR A 5°", "MAYOR A 5°"] },
+          "Corrosión en Base": { tipo: "categoria", opciones: ["TIPO A (MÁS CRÍTICO)", "TIPO B1", "TIPO B", "TIPO C (MENOS CRÍTICO)", "TIPO CV", "TIPO AV (REFORZADO)", "CONFORME"] },
+          "Estado Cuerpo": { tipo: "categoria", opciones: ["BUEN ESTADO", "RAJADURAS / FISURAS", "APOLILLADO", "DEGRADADO"] }
         }
       },
-      "Seccionadores / Cut Out": {
-        subclases: ["Descarga / Estado", "Corrosión", "Contaminación"],
-        tokens: {
-          "Descarga / Estado": ["descarga", "fogueado", "chisporroteo", "caña caida", "descolgado", "conforme", "quemado"],
-          "Corrosión": ["corrosion", "oxido", "alta corrosion", "sin oxido"],
-          "Contaminación": ["polucion", "sucio", "salitre", "limpio"]
+      "Red MT aérea": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><path d="M10,40 Q50,75 90,40"/><path d="M10,25 Q50,60 90,25"/><line x1="10" y1="20" x2="10" y2="80"/><line x1="90" y1="20" x2="90" y2="80"/></svg>`,
+        campos: {
+          "Sección": { tipo: "categoria", opciones: ["35 mm²", "50 mm²", "70 mm²", "95 mm²", "120 mm²", "150 mm²", "185 mm²", "240 mm²"] },
+          "Material": { tipo: "categoria", opciones: ["ALUMINIO (AAAC)", "COBRE (CU)", "ALEACIÓN"] },
+          "Tipo": { tipo: "categoria", opciones: ["DESNUDO", "AISLADO"] },
+          "Estado Conductor / Cable": { tipo: "categoria", opciones: ["BUEN ESTADO", "HILOS ROTOS", "SULFATADO / CORROÍDO", "DESTENSADO"] },
+          "Mangas": { tipo: "binario", opciones: ["SÍ", "NO"] },
+          "Cruce de Vía": { tipo: "binario", opciones: ["SÍ", "NO"] }
         }
       },
-      "DMS": {
-        subclases: ["Incumple / Presenta", "Qué Concepto", "Distancia", "Manga"],
-        tokens: {
-          "Incumple / Presenta": ["incumple", "presenta", "riesgo", "cumple", "sin riesgo", "peligro"],
-          "Qué Concepto": ["predio", "casa", "red bt", "cartel", "letrero", "grifo", "fachada"],
-          "Distancia": ["metros", "m", "distancia", "un metro", "dos metros"],
-          "Manga": ["con manga", "sin manga", "cubierta", "manguera", "forro"]
+      "Red MT subterránea": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><rect x="35" y="20" width="30" height="60" rx="5"/><line x1="50" y1="10" x2="50" y2="90"/><path d="M25,85 L75,85"/></svg>`,
+        campos: {
+          "Sección": { tipo: "categoria", opciones: ["35 mm²", "50 mm²", "70 mm²", "120 mm²", "185 mm²", "240 mm²"] },
+          "Material": { tipo: "categoria", opciones: ["COBRE (CU)", "ALUMINIO (AL)"] },
+          "Tipo": { tipo: "texto_libre" },
+          "Estado": { tipo: "categoria", opciones: ["CONFORME", "CUBIERTA DAÑADA", "HUMEDAD"] },
+          "Terminales": { tipo: "categoria", opciones: ["CONFORME", "AGRIETADO / CUARTEADO", "SOPORTE DEFICIENTE", "NO TIENE"] },
+          "Subida / Bajada": { tipo: "categoria", opciones: ["SUBIDA", "BAJADA", "NO APLICA"] }
+        }
+      },
+      "Rieles / Protección Impacto": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><rect x="20" y="45" width="60" height="20" rx="3"/><line x1="30" y1="65" x2="30" y2="85"/><line x1="70" y1="65" x2="70" y2="85"/></svg>`,
+        campos: {
+          "Estado Riel (Corrosión / Impacto)": { tipo: "categoria", opciones: ["SIN DAÑO", "CORROSIÓN MEDIA", "CORROSIÓN ALTA", "CHOCADO / DEFORMADO"] },
+          "Tipo de Suelo": { tipo: "categoria", opciones: ["CONCRETO / VEREDA", "ASFALTO", "TIERRA / AFIRMADO", "ROCOSO"] },
+          "Requiere Riel": { tipo: "binario", opciones: ["SÍ", "NO"] }
+        }
+      },
+      "Conectores / Empalmes": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><circle cx="40" cy="50" r="12"/><circle cx="60" cy="50" r="12"/><line x1="15" y1="50" x2="28" y2="50"/><line x1="72" y1="50" x2="85" y2="50"/></svg>`,
+        campos: {
+          "Estado Corrosión": { tipo: "categoria", opciones: ["SIN CORROSIÓN", "CORROSIÓN MEDIA", "CORROSIÓN ALTA / QUEMADO"] },
+          "Conductor 1": { tipo: "texto_libre" },
+          "Conductor 2": { tipo: "texto_libre" }
+        }
+      },
+      "Grapas": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><path d="M30,30 L70,30 L60,70 L40,70 Z"/><circle cx="50" cy="50" r="6" class="fill-sky-400"/></svg>`,
+        campos: {
+          "Estado Corrosión": { tipo: "categoria", opciones: ["SIN CORROSIÓN", "CORROSIÓN MEDIA", "CORROSIÓN ALTA / DAÑADO"] }
         }
       },
       "Aisladores": {
-        subclases: ["Material", "Contaminación", "Descarga", "Requiere Cambio"],
-        tokens: {
-          "Material": ["polimerico", "porcelana"],
-          "Contaminación": ["salitre", "polucion", "sucio", "limpio"],
-          "Descarga": ["tracking", "fogueado", "descarga", "sin descarga"],
-          "Requiere Cambio": ["requiere cambio", "roto", "desportillado", "buen estado"]
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><line x1="50" y1="15" x2="50" y2="85"/><rect x="30" y="30" width="40" height="10" rx="3"/><rect x="33" y="45" width="34" height="10" rx="3"/><rect x="36" y="60" width="28" height="10" rx="3"/></svg>`,
+        campos: {
+          "Material": { tipo: "categoria", opciones: ["POLIMÉRICO", "PORCELANA"] },
+          "Contaminación": { tipo: "categoria", opciones: ["LIMPIO", "POLUCIÓN LEVE", "POLUCIÓN SEVERA / SALINIDAD"] },
+          "Descarga": { tipo: "categoria", opciones: ["NO PRESENTA", "TRACKING LEVE", "CARBONIZADO / DESCARGA ACTIVA"] },
+          "Requiere Cambio": { tipo: "binario", opciones: ["SÍ", "NO"] }
+        }
+      },
+      "Ménsulas": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><line x1="25" y1="20" x2="25" y2="80"/><line x1="25" y1="35" x2="80" y2="35"/><line x1="25" y1="65" x2="70" y2="35"/></svg>`,
+        campos: {
+          "Material": { tipo: "categoria", opciones: ["CONCRETO", "METÁLICA", "MADERA"] },
+          "Estado": { tipo: "categoria", opciones: ["BUEN ESTADO", "RAJADA / DESPRENDIDA", "REVIRADA / DOBLADA", "CORROÍDA"] },
+          "Diagonales": { tipo: "categoria", opciones: ["CONFORME", "FLOJAS / SUELTAS", "CORROSIÓN ALTA", "NO TIENE"] }
+        }
+      },
+      "Plataforma": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><rect x="15" y="45" width="70" height="12"/><line x1="30" y1="57" x2="30" y2="85"/><line x1="70" y1="57" x2="70" y2="85"/></svg>`,
+        campos: {
+          "Material": { tipo: "categoria", opciones: ["CONCRETO", "MADERA", "POLIMÉRICA"] },
+          "Estado": { tipo: "categoria", opciones: ["CONFORME", "FISURADA", "DETERIORO SEVERO"] }
+        }
+      },
+      "Palomilla": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><line x1="20" y1="50" x2="80" y2="50"/><path d="M40,50 L50,30 L60,50 Z"/></svg>`,
+        campos: {
+          "Material": { tipo: "categoria", opciones: ["FIERRO GALVANIZADO", "PERFIL METÁLICO", "OTRO"] },
+          "Estado": { tipo: "categoria", opciones: ["BUEN ESTADO", "CORROSIÓN MEDIA", "CORROSIÓN ALTA / DEFORMADA"] }
+        }
+      },
+      "Seccionadores / Cut Out": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><line x1="20" y1="50" x2="40" y2="50"/><line x1="40" y1="50" x2="70" y2="25"/><circle cx="40" cy="50" r="3"/><circle cx="75" cy="50" r="3"/><line x1="75" y1="50" x2="85" y2="50"/></svg>`,
+        campos: {
+          "Contaminación": { tipo: "categoria", opciones: ["LIMPIO", "POLUCIÓN SEVERA"] },
+          "Descarga / Estado": { tipo: "categoria", opciones: ["CONFORME", "PORTAFUSIBLE DESCOLGADO / ABIERTO", "CARBONIZADO / DESCARGA"] },
+          "Corrosión": { tipo: "categoria", opciones: ["SIN CORROSIÓN", "CORROSIÓN MEDIA", "CORROSIÓN ALTA"] }
+        }
+      },
+      "Equipo - Transformador": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><rect x="25" y="30" width="50" height="45" rx="4"/><line x1="35" y1="20" x2="35" y2="30"/><line x1="50" y1="15" x2="50" y2="30"/><line x1="65" y1="20" x2="65" y2="30"/></svg>`,
+        campos: {
+          "Corrosión": { tipo: "categoria", opciones: ["BUEN ESTADO", "CORROSIÓN MEDIA", "CORROSIÓN ALTA EN CUBA"] },
+          "Aceite": { tipo: "categoria", opciones: ["SIN FUGA", "MANCHA / GOTEO ACTIVO", "PÉRDIDA SEVERA"] },
+          "Objetos Cercanos": { tipo: "categoria", opciones: ["SIN PRESENCIA", "RAMAS CERCA", "NIDOS / BASURA", "CARTEL"] }
+        }
+      },
+      "Tableros": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><rect x="25" y="20" width="50" height="60" rx="4"/><line x1="45" y1="20" x2="45" y2="80"/><circle cx="40" cy="50" r="2"/></svg>`,
+        campos: {
+          "Tamaño": { tipo: "categoria", opciones: ["PEQUEÑO", "MEDIANO", "GRANDE"] },
+          "Corrosión": { tipo: "categoria", opciones: ["SIN CORROSIÓN", "CORROSIÓN MEDIA", "CORROSIÓN ALTA"] },
+          "Ferretería": { tipo: "categoria", opciones: ["SIN CORROSIÓN", "CORROÍDO / DAÑADO"] },
+          "Estado General": { tipo: "categoria", opciones: ["BUEN ESTADO", "GOLPEADO / ROTO", "QUEMADO"] }
         }
       },
       "Puesta a tierra / PAT": {
-        subclases: ["Conexión", "Rotulado", "Estado Pozo a Tierra", "¿Robado?"],
-        tokens: {
-          "Conexión": ["conforme", "desconectada", "incompleta", "cable tierra"],
-          "Rotulado": ["rotulado conforme", "sin rotulo", "borroso"],
-          "Estado Pozo a Tierra": ["visible", "no visible", "tapa rota", "enterrado"],
-          "¿Robado?": ["robado", "cortado", "completo", "guillotinado"]
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><line x1="50" y1="20" x2="50" y2="55"/><line x1="25" y1="55" x2="75" y2="55"/><line x1="35" y1="65" x2="65" y2="65"/><line x1="45" y1="75" x2="55" y2="75"/></svg>`,
+        campos: {
+          "Conexión": { tipo: "categoria", opciones: ["CONFORME", "DESCONECTADA / SUELTA", "CABLE CORTADO"] },
+          "Rotulado": { tipo: "categoria", opciones: ["CONFORME", "BORROSO", "SIN ROTULADO"] },
+          "Estado Pozo a Tierra": { tipo: "categoria", opciones: ["VISIBLE-BUEN ESTADO", "NO VISIBLE / TAPADO", "TAPA ROTA"] },
+          "¿Robado?": { tipo: "binario", opciones: ["SÍ", "NO"] }
         }
       },
       "Retenida": {
-        subclases: ["Tipo", "Aislador de Retenida", "Corrosión", "Canaleta"],
-        tokens: {
-          "Tipo": ["simple", "doble", "aerea", "no requiere"],
-          "Aislador de Retenida": ["nuez", "buen estado", "roto"],
-          "Corrosión": ["corrosion", "oxidada", "bueno"],
-          "Canaleta": ["con canaleta", "sin canaleta", "doblada"]
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><line x1="20" y1="85" x2="80" y2="15"/><circle cx="50" cy="50" r="6" class="fill-sky-400"/></svg>`,
+        campos: {
+          "Tipo": { tipo: "categoria", opciones: ["DOBLE MÚLTIPLE", "AÉREA", "SIMPLE", "VIOLÍN", "NO REQUIERE"] },
+          "Aislador de Retenida": { tipo: "categoria", opciones: ["CONFORME (TIPO NUEZ)", "ROTO / DAÑADO", "NO TIENE"] },
+          "Corrosión": { tipo: "categoria", opciones: ["SIN CORROSIÓN", "CORROSIÓN MEDIA", "CORROSIÓN ALTA"] },
+          "Canaleta": { tipo: "categoria", opciones: ["CON CANALETA (BUEN ESTADO)", "CORROÍDA", "ROTA / DOBLADA", "SIN CANALETA"] }
+        }
+      },
+      "DMS": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-amber-400 fill-none stroke-[3]"><rect x="15" y="45" width="25" height="40"/><path d="M75,20 L75,85"/><line x1="40" y1="35" x2="75" y2="35" stroke-dasharray="4,4"/><path d="M40,35 L45,30 M40,35 L45,40"/></svg>`,
+        campos: {
+          "Incumple / Presenta": { tipo: "binario", opciones: ["SÍ (INCUMPLE)", "NO (CUMPLE)"] },
+          "Qué Concepto": { tipo: "categoria", opciones: ["PREDIO", "CABLE DE TELECOMUNICACIONES", "RED BT", "CARTEL", "GRIFO", "OTRO"] },
+          "Distancia": { tipo: "medicion_numerica" },
+          "Manga": { tipo: "categoria", opciones: ["CON MANGA", "SIN MANGA"] }
+        }
+      },
+      "Observaciones": {
+        icono: `<svg viewBox="0 0 100 100" class="w-14 h-14 stroke-sky-400 fill-none stroke-[3]"><rect x="25" y="20" width="50" height="60" rx="4"/><line x1="35" y1="35" x2="65" y2="35"/><line x1="35" y1="50" x2="65" y2="50"/><line x1="35" y1="65" x2="55" y2="65"/></svg>`,
+        campos: {
+          "Observaciones / Comentarios": { tipo: "texto_libre" }
         }
       }
     };
 
-    // ESTADO DEL MODELO Y PARÁMETROS DE APRENDIZAJE
-    let W_sint = parseFloat(localStorage.getItem("w_sint")) || 0.7000;
-    let W_sem = parseFloat(localStorage.getItem("w_sem")) || 0.3000;
-    let Bias = parseFloat(localStorage.getItem("bias")) || 0.0000;
+    // TOKENS DE PALABRAS CLAVE
+    const DICCIONARIO_TOKENS = {
+      "Material": {
+        "CONCRETO": ["concreto", "cac", "cemento", "centrifugado"],
+        "MADERA": ["madera", "pino", "eucalipto"],
+        "METAL": ["metal", "metalico", "acero", "fierro"],
+        "PRFV": ["prfv", "prfb", "p r f v", "fibra", "fibra de vidrio", "poliester"]
+      },
+      "Altura": {
+        "8 m": ["8", "8m", "ocho"], "9 m": ["9", "9m", "nueve"], "11 m": ["11", "11m", "once"],
+        "12 m": ["12", "12m", "doce"], "13 m": ["13", "13m", "trece"], "14 m": ["14", "14m", "catorce"], "15 m": ["15", "15m", "quince"]
+      },
+      "Corrosión en Base": {
+        "TIPO A (MÁS CRÍTICO)": ["tipo a", "critico a", "desprendido total", "colapso base"],
+        "TIPO B1": ["tipo b1", "b uno", "b1"],
+        "TIPO B": ["tipo b", "base b"],
+        "TIPO C (MENOS CRÍTICO)": ["tipo c", "menos critico", "leve"],
+        "TIPO CV": ["tipo cv", "c v", "cv"],
+        "TIPO AV (REFORZADO)": ["tipo av", "a v", "av", "reforzado"],
+        "CONFORME": ["buen estado", "sin daño", "conforme", "sano"]
+      },
+      "Ferretería": {
+        "SIN CORROSIÓN": ["sin corrosion", "limpio", "bueno", "conforme"],
+        "CORROÍDO / DAÑADO": ["corroido", "dañado", "oxido", "oxidado", "chapa rota"]
+      },
+      "Tipo": {
+        "DOBLE MÚLTIPLE": ["doble multiple", "multiple", "doble"],
+        "AÉREA": ["aerea", "aereo"],
+        "SIMPLE": ["simple", "un tirante"],
+        "VIOLÍN": ["violin", "tipo violin"],
+        "NO REQUIERE": ["no requiere", "sin retenida"]
+      },
+      "Canaleta": {
+        "CON CANALETA (BUEN ESTADO)": ["con canaleta", "buen estado"],
+        "CORROÍDA": ["canaleta corroida", "canaleta oxidada", "oxido"],
+        "ROTA / DOBLADA": ["canaleta rota", "doblada", "chocada"],
+        "SIN CANALETA": ["sin canaleta", "falta canaleta"]
+      },
+      "Qué Concepto": {
+        "PREDIO": ["predio", "casa", "fachada", "balcon", "edificacion"],
+        "CABLE DE TELECOMUNICACIONES": ["telecomunicaciones", "telecom", "cables internet", "fibra optica", "telefonica", "claro"],
+        "RED BT": ["red bt", "baja tension", "pastoral"],
+        "CARTEL": ["cartel", "letrero", "panel publicitario"],
+        "GRIFO": ["grifo", "estacion de servicio"],
+        "OTRO": ["otro", "arbol"]
+      }
+    };
+
+    // ========================================================================
+    // 2. VARIABLES DE ESTADO Y PERSISTENCIA (LOCALSTORAGE)
+    // ========================================================================
+    let W_sint = parseFloat(localStorage.getItem("mt_cce_wsint")) || 0.7000;
+    let W_sem = parseFloat(localStorage.getItem("mt_cce_wsem")) || 0.3000;
     let tasaEta = 0.08;
-    let epocaActual = parseInt(localStorage.getItem("epoca_actual")) || 0;
-    let historial = JSON.parse(localStorage.getItem("historial_gradientes") || "[]");
+    let epocaActual = parseInt(localStorage.getItem("mt_cce_epoca")) || 0;
+    let historial = JSON.parse(localStorage.getItem("mt_cce_historial") || "[]");
 
-    let evaluacionActual = null;
+    // Historial para gráficas de telemetría (últimas 40 iteraciones)
+    let seriesLoss = JSON.parse(localStorage.getItem("mt_series_loss") || "[]");
+    let seriesWs = JSON.parse(localStorage.getItem("mt_series_ws") || "[]");
+    let seriesWm = JSON.parse(localStorage.getItem("mt_series_wm") || "[]");
 
-    // REFRESCO DE PANELES Y FORMATO
+    const registrosInspeccion = {};
+    const carpetasFotos = {};
+
+    Object.entries(CATALOGO_MAESTRO).forEach(([clase, cfg]) => {
+      registrosInspeccion[clase] = {};
+      carpetasFotos[clase] = [];
+      Object.keys(cfg.campos).forEach(sub => {
+        registrosInspeccion[clase][sub] = "";
+      });
+    });
+
+    let claseActivaOperativa = "Poste";
+    let evaluacionEntrenamientoActual = null;
+
     function refrescarConsolaPesos() {
       document.getElementById("txt-val-wsint").innerText = W_sint.toFixed(4);
       document.getElementById("txt-val-wsem").innerText = W_sem.toFixed(4);
-      document.getElementById("txt-val-bias").innerText = Bias.toFixed(4);
+      document.getElementById("cadena-pesos").innerText = `W = [Ws: ${W_sint.toFixed(4)}, Wm: ${W_sem.toFixed(4)}] | Época: ${epocaActual}`;
 
-      const strPesos = `W = [Ws: ${W_sint.toFixed(4)}, Wm: ${W_sem.toFixed(4)}, b: ${Bias.toFixed(4)}] | Época: ${epocaActual}`;
-      document.getElementById("cadena-pesos").innerText = strPesos;
-
-      localStorage.setItem("w_sint", W_sint);
-      localStorage.setItem("w_sem", W_sem);
-      localStorage.setItem("bias", Bias);
-      localStorage.setItem("epoca_actual", epocaActual);
-      localStorage.setItem("historial_gradientes", JSON.stringify(historial));
+      localStorage.setItem("mt_cce_wsint", W_sint);
+      localStorage.setItem("mt_cce_wsem", W_sem);
+      localStorage.setItem("mt_cce_epoca", epocaActual);
+      localStorage.setItem("mt_cce_historial", JSON.stringify(historial));
+      localStorage.setItem("mt_series_loss", JSON.stringify(seriesLoss));
+      localStorage.setItem("mt_series_ws", JSON.stringify(seriesWs));
+      localStorage.setItem("mt_series_wm", JSON.stringify(seriesWm));
 
       poblarTablaHistorial();
+      dibujarGraficas();
     }
 
-    // 1. MOTOR SINTÁCTICO: N-Gramas y Presencia Estructural de Ranuras
-    function calcValorSintactico(frase, listaTokens) {
-      const f = frase.toLowerCase();
-      let matches = 0;
-      listaTokens.forEach(t => {
-        const re = new RegExp(`\\b${t}\\b`, 'i');
-        if (re.test(f)) matches++;
-      });
-      // Normalización contra ventana óptima
-      const normalizador = Math.max(listaTokens.length * 0.35, 1);
-      return Math.min(matches / normalizador, 1.0);
-    }
+    // ========================================================================
+    // 3. RENDERIZADO DE GRÁFICAS EN CANVAS HTML5 (LOSS & TRAYECTORIA PESOS)
+    // ========================================================================
+    function dibujarGraficas() {
+      // 1. GRÁFICA DE LOSS CCE
+      const cvLoss = document.getElementById("canvas-loss");
+      if (cvLoss) {
+        const ctx = cvLoss.getContext("2d");
+        const w = cvLoss.width;
+        const h = cvLoss.height;
+        ctx.clearRect(0, 0, w, h);
 
-    // 2. MOTOR SEMÁNTICO: Coeficiente de similitud difusa por bi-gramas de caracteres
-    function calcValorSemantico(frase, listaTokens) {
-      function extractBigrams(str) {
-        const set = new Set();
-        const clean = str.toLowerCase().replace(/\s+/g, ' ');
-        for (let i = 0; i < clean.length - 1; i++) {
-          set.add(clean.substring(i, i + 2));
+        // Guías de fondo
+        ctx.strokeStyle = "#1e293b";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, h * 0.25); ctx.lineTo(w, h * 0.25);
+        ctx.moveTo(0, h * 0.50); ctx.lineTo(w, h * 0.50);
+        ctx.moveTo(0, h * 0.75); ctx.lineTo(w, h * 0.75);
+        ctx.stroke();
+
+        if (seriesLoss.length >= 2) {
+          const maxL = Math.max(...seriesLoss, 2.0);
+          const stepX = w / (seriesLoss.length - 1);
+
+          // Trazar línea de Loss
+          ctx.strokeStyle = "#c084fc"; // Púrpura brillante
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          seriesLoss.forEach((l, idx) => {
+            const x = idx * stepX;
+            const y = h - ((l / maxL) * (h - 14) + 7);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+
+          // Puntos clave
+          seriesLoss.forEach((l, idx) => {
+            const x = idx * stepX;
+            const y = h - ((l / maxL) * (h - 14) + 7);
+            ctx.fillStyle = "#e879f9";
+            ctx.beginPath();
+            ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
         }
-        return set;
       }
 
-      const bgFrase = extractBigrams(frase);
-      if (bgFrase.size === 0) return 0.0;
+      // 2. GRÁFICA DE TRAYECTORIA DE PESOS (WS vs WM)
+      const cvW = document.getElementById("canvas-weights");
+      if (cvW) {
+        const ctx = cvW.getContext("2d");
+        const w = cvW.width;
+        const h = cvW.height;
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.strokeStyle = "#1e293b";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, h * 0.5); ctx.lineTo(w, h * 0.5); // Línea 0.5
+        ctx.stroke();
+
+        if (seriesWs.length >= 2) {
+          const stepX = w / (seriesWs.length - 1);
+
+          // Trazar W_sint (Azul Celeste)
+          ctx.strokeStyle = "#38bdf8";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          seriesWs.forEach((v, idx) => {
+            const x = idx * stepX;
+            const y = h - (v * (h - 12) + 6);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+
+          // Trazar W_sem (Verde Esmeralda)
+          ctx.strokeStyle = "#34d399";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          seriesWm.forEach((v, idx) => {
+            const x = idx * stepX;
+            const y = h - (v * (h - 12) + 6);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+        }
+      }
+
+      // 3. DETECTOR HEURÍSTICO DE CONVERGENCIA / LÍMITE
+      const lblConv = document.getElementById("lbl-estado-convergencia");
+      if (seriesLoss.length >= 8) {
+        const ultimos = seriesLoss.slice(-5);
+        const varianza = Math.max(...ultimos) - Math.min(...ultimos);
+        const ultimoLoss = ultimos[ultimos.length - 1];
+
+        if (varianza < 0.015 && ultimoLoss < 0.35) {
+          lblConv.innerText = "✓ Límite de Convergencia Alcanzado";
+          lblConv.className = "text-[10px] font-mono text-amber-400 font-bold";
+        } else if (ultimoLoss >= 1.0) {
+          lblConv.innerText = "Entrenando (Pérdida activa)";
+          lblConv.className = "text-[10px] font-mono text-rose-400";
+        } else {
+          lblConv.innerText = "Aprendiendo progresivamente...";
+          lblConv.className = "text-[10px] font-mono text-emerald-400";
+        }
+      }
+    }
+
+    // ========================================================================
+    // 4. NORMALIZADOR FONÉTICO Y SEGMENTADOR ORACIONAL PREVIO
+    // ========================================================================
+    function normalizarSiglas(texto) {
+      return texto
+        .replace(/\b(?:p[\s\.\-]*r[\s\.\-]*f[\s\.\-]*[vb]|prfb)\b/gi, "PRFV")
+        .replace(/\b(?:c[\s\.\-]*a[\s\.\-]*c)\b/gi, "CAC")
+        .replace(/\b(?:p[\s\.\-]*a[\s\.\-]*t)\b/gi, "PAT")
+        .replace(/\b(?:d[\s\.\-]*m[\s\.\-]*s)\b/gi, "DMS")
+        .replace(/\b(cutao|cut aut|kutao)\b/gi, "cut out")
+        .replace(/\b(de ms|de meses)\b/gi, "DMS");
+    }
+
+    const ANCLAS_CLASE = [
+      "poste", "red mt", "cable", "subterranea", "riel", "proteccion",
+      "conector", "empalme", "grapa", "aislador", "aisladores",
+      "mensula", "cruceta", "plataforma", "palomilla", "seccionador",
+      "cut out", "transformador", "trafo", "tablero", "puesta a tierra",
+      "pat", "retenida", "tirante", "dms", "observacion"
+    ];
+
+    function segmentarDictadoEnOraciones(textoCrudo) {
+      if (!textoCrudo) return [];
+      const textoNorm = normalizarSiglas(textoCrudo.toLowerCase());
+      
+      const patronAnclas = ANCLAS_CLASE.join("|");
+      const regexSeparador = new RegExp(
+        `(?:[.,;\\n]+|\\s+(?:y\\s+ademas|ademas|tambien|luego)\\s+|(?<=\\s)(?:y\\s+)?(?=(?:${patronAnclas})\\b))`,
+        'i'
+      );
+
+      return textoNorm
+        .split(regexSeparador)
+        .map(s => s.trim().replace(/^y\s+/i, ''))
+        .filter(s => s.length >= 3);
+    }
+
+    // ========================================================================
+    // 5. EXTRACTOR SINTÁCTICO Y SEMÁNTICO (VENTANA DE TOKENS)
+    // ========================================================================
+    function scoreSintactico(frase, tokens) {
+      let c = 0;
+      tokens.forEach(tk => {
+        const re = new RegExp(`\\b${tk}\\b`, 'i');
+        if (re.test(frase)) c++;
+      });
+      return Math.min(c / Math.max(tokens.length * 0.35, 1), 1.0);
+    }
+
+    function scoreSemantico(frase, tokens) {
+      function bigramas(str) {
+        const s = str.replace(/[^a-z0-9]/g, '');
+        const set = new Set();
+        for (let i = 0; i < s.length - 1; i++) set.add(s.substring(i, i + 2));
+        return set;
+      }
+      function dice(a, b) {
+        const bgA = bigramas(a);
+        const bgB = bigramas(b);
+        if (bgA.size === 0 || bgB.size === 0) return 0;
+        let comunes = 0;
+        bgA.forEach(it => { if (bgB.has(it)) comunes++; });
+        return (2.0 * comunes) / (bgA.size + bgB.size);
+      }
+
+      const palabras = frase.split(/\s+/).filter(w => w.length > 2);
       let maxSim = 0.0;
 
-      listaTokens.forEach(t => {
-        const bgToken = extractBigrams(t);
-        let intersection = 0;
-        bgToken.forEach(bg => { if (bgFrase.has(bg)) intersection++; });
-        const union = bgFrase.size + bgToken.size - intersection;
-        const jaccard = union > 0 ? (intersection / union) : 0;
-        if (jaccard > maxSim) maxSim = jaccard;
+      palabras.forEach(w => {
+        tokens.forEach(tk => {
+          const sim = tk.includes(" ")
+            ? (frase.includes(tk) ? 1.0 : dice(frase, tk))
+            : dice(w, tk);
+          if (sim > maxSim) maxSim = sim;
+        });
       });
-
-      return Math.min(maxSim * 1.6, 1.0); // Factor de escala para convergencia
+      return Math.min(maxSim, 1.0);
     }
 
-    // POBLAR SUBCLASES SEGÚN CLASE MAYOR
-    const selClase = document.getElementById("sel-clase");
-    const selSubclase = document.getElementById("sel-subclase");
+    // ========================================================================
+    // 6. MOTOR DE INFERENCIA SOFTMAX & CCE
+    // ========================================================================
+    function inferirSoftmaxCCE(frase, claseMayor, subclase) {
+      const configCampo = CATALOGO_MAESTRO[claseMayor].campos[subclase];
+      if (!configCampo || !configCampo.opciones) return [];
 
-    function actualizarSubclases(clase) {
-      selSubclase.innerHTML = "";
-      ESQUEMA_TOKENS[clase].subclases.forEach(sub => {
+      const opciones = configCampo.opciones;
+      const dictTokens = DICCIONARIO_TOKENS[subclase] || {};
+
+      const items = [];
+      let maxZ = -Infinity;
+
+      opciones.forEach(opc => {
+        const tokens = dictTokens[opc] || [opc.toLowerCase()];
+        const s_sint = scoreSintactico(frase, tokens);
+        const s_sem = scoreSemantico(frase, tokens);
+        const z = (W_sint * s_sint) + (W_sem * s_sem);
+
+        if (z > maxZ) maxZ = z;
+        items.push({ opcion: opc, s_sint, s_sem, z });
+      });
+
+      let sumaExp = 0.0;
+      items.forEach(it => {
+        it.expZ = Math.exp(it.z - maxZ);
+        sumaExp += it.expZ;
+      });
+
+      items.forEach(it => {
+        it.prob = it.expZ / (sumaExp || 1.0);
+      });
+
+      return items;
+    }
+
+    // ========================================================================
+    // 7. CONTROLADORES DEL MÓDULO LABORATORIO DE PESOS
+    // ========================================================================
+    const selClaseTrain = document.getElementById("sel-clase-train");
+    const selSubclaseTrain = document.getElementById("sel-subclase-train");
+    const selTargetTrain = document.getElementById("sel-target-train");
+
+    function poblarLabTrain() {
+      selClaseTrain.innerHTML = "";
+      Object.keys(CATALOGO_MAESTRO).forEach(c => {
         const opt = document.createElement("option");
-        opt.value = sub;
-        opt.innerText = sub;
-        selSubclase.appendChild(opt);
+        opt.value = c; opt.innerText = c;
+        selClaseTrain.appendChild(opt);
       });
+      actualizarSubclasesTrain();
     }
-    selClase.addEventListener("change", (e) => actualizarSubclases(e.target.value));
-    actualizarSubclases("Poste");
 
-    // 3. MEDICIÓN E INFERENCIA (PASO 1)
-    document.getElementById("btn-inferir").addEventListener("click", () => {
-      const frase = document.getElementById("in-frase").value.trim();
-      if (!frase) return alert("Por favor ingresa o dicta una oración de prueba.");
+    function actualizarSubclasesTrain() {
+      selSubclaseTrain.innerHTML = "";
+      const campos = CATALOGO_MAESTRO[selClaseTrain.value].campos;
+      Object.entries(campos).forEach(([sub, cfg]) => {
+        if (cfg.opciones) {
+          const opt = document.createElement("option");
+          opt.value = sub; opt.innerText = sub;
+          selSubclaseTrain.appendChild(opt);
+        }
+      });
+      actualizarTargetsTrain();
+    }
 
-      const cMayor = selClase.value;
-      const sClase = selSubclase.value;
-      const tokens = ESQUEMA_TOKENS[cMayor].tokens[sClase] || [];
+    function actualizarTargetsTrain() {
+      selTargetTrain.innerHTML = "";
+      const cfg = CATALOGO_MAESTRO[selClaseTrain.value].campos[selSubclaseTrain.value];
+      if (cfg && cfg.opciones) {
+        cfg.opciones.forEach(o => {
+          const opt = document.createElement("option");
+          opt.value = o; opt.innerText = o;
+          selTargetTrain.appendChild(opt);
+        });
+      }
+    }
 
-      const targetY = parseFloat(document.querySelector('input[name="target-val"]:checked').value);
+    selClaseTrain.addEventListener("change", actualizarSubclasesTrain);
+    selSubclaseTrain.addEventListener("change", actualizarTargetsTrain);
+    poblarLabTrain();
 
-      const s_sint = calcValorSintactico(frase, tokens);
-      const s_sem = calcValorSemantico(frase, tokens);
+    // 7.1 INFERENCIA EN LABORATORIO
+    document.getElementById("btn-inferir-cce").addEventListener("click", () => {
+      const frase = document.getElementById("in-frase-train").value.trim();
+      if (!frase) return alert("Ingresa una frase a evaluar.");
 
-      // Ecuación del Perceptrón Dual: Ŷ = (Ws * Ssint) + (Wm * Ssem) + Bias
-      const y_hat = Math.min(Math.max((W_sint * s_sint) + (W_sem * s_sem) + Bias, 0.0), 1.0);
-      const error = targetY - y_hat;
-      const loss = 0.5 * Math.pow(error, 2);
+      const cMayor = selClaseTrain.value;
+      const sClase = selSubclaseTrain.value;
+      const targetOpc = selTargetTrain.value;
 
-      evaluacionActual = { s_sint, s_sem, y_hat, error, loss, targetY, frase, cMayor, sClase };
+      const resultados = inferirSoftmaxCCE(frase, cMayor, sClase);
+      const targetItem = resultados.find(r => r.opcion === targetOpc);
+      const eps = 1e-9;
+      const loss = -Math.log(Math.max(targetItem ? targetItem.prob : 0.01, eps));
 
-      // Pintar telemetría
-      document.getElementById("tel-sint").innerText = s_sint.toFixed(4);
-      document.getElementById("tel-sem").innerText = s_sem.toFixed(4);
-      document.getElementById("tel-yhat").innerText = y_hat.toFixed(4);
-      document.getElementById("tel-err").innerText = (error >= 0 ? "+" : "") + error.toFixed(4);
-      document.getElementById("tel-loss").innerText = loss.toFixed(6);
+      evaluacionEntrenamientoActual = { frase, cMayor, sClase, targetOpc, resultados, loss };
+
+      document.getElementById("tel-loss-cce").innerText = `Loss CCE: ${loss.toFixed(4)}`;
+      document.getElementById("lbl-loss-val").innerText = `L = ${loss.toFixed(4)}`;
+
+      const cont = document.getElementById("contenedor-probs");
+      cont.innerHTML = "";
+
+      resultados.forEach(r => {
+        const esTarget = r.opcion === targetOpc;
+        const pct = (r.prob * 100).toFixed(1);
+
+        const div = document.createElement("div");
+        div.className = `p-2 rounded border ${esTarget ? 'bg-emerald-950/30 border-emerald-700/60' : 'bg-slate-950 border-slate-800'}`;
+        div.innerHTML = `
+          <div class="flex justify-between items-center mb-1">
+            <span class="font-bold ${esTarget ? 'text-emerald-400' : 'text-slate-300'}">${r.opcion} ${esTarget ? '(Target Y)' : ''}</span>
+            <span class="font-mono ${esTarget ? 'text-emerald-300' : 'text-sky-300'}">${pct}% (P: ${r.prob.toFixed(4)})</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mb-1">
+            <div class="${esTarget ? 'bg-emerald-400' : 'bg-sky-400'} h-full transition-all duration-300" style="width: ${pct}%;"></div>
+          </div>
+          <div class="flex justify-between text-[9px] text-slate-500 font-mono">
+            <span>S_sint: ${r.s_sint.toFixed(3)}</span>
+            <span>S_sem: ${r.s_sem.toFixed(3)}</span>
+            <span>Logit Z: ${r.z.toFixed(3)}</span>
+          </div>
+        `;
+        cont.appendChild(div);
+      });
     });
 
-    // 4. ACTUALIZACIÓN POR DESCENSO DE GRADIENTE (PASO 2)
-    document.getElementById("btn-ajustar").addEventListener("click", () => {
-      if (!evaluacionActual) return alert("Primero realiza la evaluación con el botón 1.");
+    // 7.2 ACTUALIZACIÓN DE GRADIENTE (SGD CCE)
+    document.getElementById("btn-entrenar-cce").addEventListener("click", () => {
+      if (!evaluacionEntrenamientoActual) return alert("Primero realiza la inferencia Softmax.");
 
-      const { s_sint, s_sem, error } = evaluacionActual;
+      const { resultados, targetOpc, loss } = evaluacionEntrenamientoActual;
 
-      // REGLA DEL DELTA (GRADIENT DESCENT UPDATE):
-      // ΔW = η * error * feature
-      const deltaWs = tasaEta * error * s_sint;
-      const deltaWm = tasaEta * error * s_sem;
-      const deltaBias = tasaEta * error * 0.5;
+      let gradWs = 0.0;
+      let gradWm = 0.0;
 
-      W_sint = Math.max(W_sint + deltaWs, 0.05);
-      W_sem = Math.max(W_sem + deltaWm, 0.05);
-      Bias = Bias + deltaBias;
+      resultados.forEach(r => {
+        const y_k = (r.opcion === targetOpc) ? 1.0 : 0.0;
+        const diff = r.prob - y_k;
+        gradWs += diff * r.s_sint;
+        gradWm += diff * r.s_sem;
+      });
 
-      // Normalización de Pesos para mantener balance de escala
-      const factorNorm = W_sint + W_sem;
-      W_sint = W_sint / factorNorm;
-      W_sem = W_sem / factorNorm;
+      W_sint = Math.max(0.05, W_sint - (tasaEta * gradWs));
+      W_sem = Math.max(0.05, W_sem - (tasaEta * gradWm));
+
+      const norma = W_sint + W_sem;
+      W_sint = W_sint / norma;
+      W_sem = W_sem / norma;
 
       epocaActual++;
 
-      // Guardar registro en historial
+      // Registrar series de gráficas
+      seriesLoss.push(parseFloat(loss.toFixed(4)));
+      seriesWs.push(parseFloat(W_sint.toFixed(4)));
+      seriesWm.push(parseFloat(W_sem.toFixed(4)));
+      if (seriesLoss.length > 40) {
+        seriesLoss.shift(); seriesWs.shift(); seriesWm.shift();
+      }
+
+      const targetItem = resultados.find(r => r.opcion === targetOpc);
       historial.unshift({
         epoca: epocaActual,
-        s_sint: s_sint.toFixed(3),
-        s_sem: s_sem.toFixed(3),
-        error: error.toFixed(3),
+        target: targetOpc,
+        prob: targetItem ? targetItem.prob.toFixed(3) : "0.00",
+        loss: loss.toFixed(4),
         ws: W_sint.toFixed(4),
         wm: W_sem.toFixed(4)
       });
       if (historial.length > 25) historial.pop();
 
       refrescarConsolaPesos();
-
-      // Recalcular inferencia para mostrar el nuevo error reducido
-      document.getElementById("btn-inferir").click();
+      document.getElementById("btn-inferir-cce").click();
     });
 
-    // TABLA HISTÓRICA
     function poblarTablaHistorial() {
       const tbody = document.getElementById("tabla-historial-body");
       if (historial.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-500 italic">No hay iteraciones registradas aún.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-2 text-center text-slate-500 italic">Sin iteraciones registradas.</td></tr>`;
         return;
       }
       tbody.innerHTML = "";
       historial.forEach(h => {
         const tr = document.createElement("tr");
-        tr.className = "border-b border-slate-900 hover:bg-slate-900/50";
+        tr.className = "border-b border-slate-900";
         tr.innerHTML = `
-          <td class="p-1.5 font-bold text-amber-400">#${h.epoca}</td>
-          <td class="p-1.5 text-sky-400">${h.s_sint}</td>
-          <td class="p-1.5 text-emerald-400">${h.s_sem}</td>
-          <td class="p-1.5 ${parseFloat(h.error) === 0 ? 'text-slate-400' : 'text-rose-400'}">${h.error}</td>
-          <td class="p-1.5 text-slate-200">${h.ws}</td>
-          <td class="p-1.5 text-slate-200">${h.wm}</td>
+          <td class="p-1 font-bold text-amber-400">#${h.epoca}</td>
+          <td class="p-1 text-slate-300 truncate max-w-[70px]">${h.target}</td>
+          <td class="p-1 text-emerald-400">${h.prob}</td>
+          <td class="p-1 text-purple-400">${h.loss}</td>
+          <td class="p-1 text-sky-400">${h.ws}</td>
+          <td class="p-1 text-teal-400">${h.wm}</td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    // ACCIONES DE COPIADO Y DESCARGA
-    document.getElementById("btn-copiar-pesos").addEventListener("click", () => {
-      const texto = `PESOS_NLU_CALIBRADOS:\nW_sintactico = ${W_sint.toFixed(4)}\nW_semantico = ${W_sem.toFixed(4)}\nBias = ${Bias.toFixed(4)}\nEpocas_Entrenadas = ${epocaActual}`;
-      navigator.clipboard.writeText(texto).then(() => {
-        alert("¡Pesos copiados al portapapeles!\n\n" + texto);
+    // ========================================================================
+    // 8. CONTROLADORES DEL MODO OPERATIVO DE INSPECCIÓN
+    // ========================================================================
+    const selClaseMayorOp = document.getElementById("sel-clase-mayor-op");
+
+    function inicializarVistaOperativa() {
+      selClaseMayorOp.innerHTML = "";
+      Object.keys(CATALOGO_MAESTRO).forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c; opt.innerText = c;
+        selClaseMayorOp.appendChild(opt);
+      });
+      renderizarActivoOperativo(claseActivaOperativa);
+    }
+
+    function renderizarActivoOperativo(nombreClase) {
+      claseActivaOperativa = nombreClase;
+      const cfg = CATALOGO_MAESTRO[nombreClase];
+
+      document.getElementById("titulo-activo").innerText = nombreClase.toUpperCase();
+      document.getElementById("svg-activo").innerHTML = cfg.icono;
+
+      const contSub = document.getElementById("lista-subclases-op");
+      contSub.innerHTML = "";
+
+      Object.entries(cfg.campos).forEach(([sub, fieldCfg]) => {
+        const valActual = registrosInspeccion[nombreClase][sub];
+        const tieneValor = valActual !== "";
+
+        const div = document.createElement("div");
+        div.className = "flex items-center justify-between p-1.5 rounded-md bg-slate-900/90 border border-slate-800 text-xs";
+        div.innerHTML = `
+          <div class="flex items-center gap-1.5 overflow-hidden">
+            <span class="font-medium text-slate-300 truncate">${sub}</span>
+            <span class="text-sky-400 font-bold">➔</span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="font-mono text-[11px] ${tieneValor ? 'text-emerald-400 font-bold bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/50' : 'text-slate-500 italic'}">
+              ${tieneValor ? valActual : '[Sin registrar]'}
+            </span>
+            <button class="btn-editar text-[10px] bg-slate-800 hover:bg-slate-700 text-sky-300 px-1.5 py-0.5 rounded" data-clase="${nombreClase}" data-sub="${sub}">✏️</button>
+          </div>
+        `;
+        contSub.appendChild(div);
+      });
+
+      renderizarGaleriaOperativa();
+      actualizarTotalLlenadas();
+    }
+
+    function renderizarGaleriaOperativa() {
+      const cont = document.getElementById("galeria-activo");
+      const fotos = carpetasFotos[claseActivaOperativa];
+      document.getElementById("badge-fotos-activo").innerText = `📁 Fotos: ${fotos.length}`;
+      cont.innerHTML = "";
+
+      if (fotos.length === 0) {
+        cont.innerHTML = `<p class="text-[10px] text-slate-500 italic col-span-4 text-center py-2">Sin fotografías aún.</p>`;
+        return;
+      }
+
+      fotos.forEach((src) => {
+        const div = document.createElement("div");
+        div.className = "relative aspect-square rounded overflow-hidden border border-slate-700 bg-black";
+        div.innerHTML = `<img src="${src}" class="w-full h-full object-cover">`;
+        cont.appendChild(div);
+      });
+    }
+
+    function actualizarTotalLlenadas() {
+      let count = 0;
+      Object.values(registrosInspeccion).forEach(campos => {
+        Object.values(campos).forEach(v => { if (v !== "") count++; });
+      });
+      document.getElementById("lbl-total-llenadas").innerText = `${count} variables registradas`;
+    }
+
+    selClaseMayorOp.addEventListener("change", (e) => renderizarActivoOperativo(e.target.value));
+
+    // EDICIÓN MANUAL RÁPIDA
+    document.addEventListener("click", (e) => {
+      if (e.target.classList.contains("btn-editar")) {
+        const c = e.target.dataset.clase;
+        const s = e.target.dataset.sub;
+        const actual = registrosInspeccion[c][s];
+        const nuevo = prompt(`Valor para ${c} ➔ ${s}:`, actual);
+        if (nuevo !== null) {
+          registrosInspeccion[c][s] = nuevo.trim();
+          renderizarActivoOperativo(c);
+        }
+      }
+    });
+
+    // ========================================================================
+    // 9. PROCESAMIENTO COMPLETO DEL DICTADO (SEGMENTACIÓN + SOFTMAX CCE)
+    // ========================================================================
+    document.getElementById("btn-procesar-operativo").addEventListener("click", () => {
+      const textoCrudo = document.getElementById("txt-dictado-operativo").value.trim();
+      if (!textoCrudo) return;
+
+      const segmentos = segmentarDictadoEnOraciones(textoCrudo);
+      
+      const boxSeg = document.getElementById("box-segmentos");
+      const listSeg = document.getElementById("lista-segmentos-ui");
+      boxSeg.classList.remove("hidden");
+      listSeg.innerHTML = "";
+
+      segmentos.forEach(seg => {
+        const p = document.createElement("div");
+        p.innerText = `• "${seg}"`;
+        listSeg.appendChild(p);
+
+        let claseDetectada = claseActivaOperativa;
+        Object.keys(CATALOGO_MAESTRO).forEach(c => {
+          if (seg.includes(c.toLowerCase()) || (c === "Seccionadores / Cut Out" && (seg.includes("cut out") || seg.includes("seccionador")))) {
+            claseDetectada = c;
+          }
+        });
+
+        const campos = CATALOGO_MAESTRO[claseDetectada].campos;
+        Object.entries(campos).forEach(([sub, cfg]) => {
+          if (cfg.tipo === "hibrido_num_cat") {
+            const mGrados = seg.match(/(\d+(?:\.\d+)?)\s*(?:°|grados)/);
+            if (mGrados) registrosInspeccion[claseDetectada][sub] = `${mGrados[1]}°`;
+          }
+
+          if (cfg.tipo === "medicion_numerica") {
+            const mDist = seg.match(/(\d+(?:\.\d+)?)\s*(?:m|metros|metro)/);
+            if (mDist) registrosInspeccion[claseDetectada][sub] = `${mDist[1]} m`;
+          }
+
+          if (cfg.opciones) {
+            const inferencia = inferirSoftmaxCCE(seg, claseDetectada, sub);
+            if (inferencia.length > 0) {
+              inferencia.sort((a, b) => b.prob - a.prob);
+              if (inferencia[0].prob >= 0.45 && (inferencia[0].s_sint > 0.1 || inferencia[0].s_sem > 0.4)) {
+                registrosInspeccion[claseDetectada][sub] = inferencia[0].opcion;
+              }
+            }
+          }
+        });
+      });
+
+      renderizarActivoOperativo(claseActivaOperativa);
+      document.getElementById("txt-dictado-operativo").value = "";
+    });
+
+    // ========================================================================
+    // 10. CAPTURA DE FOTOS EN LA CARPETA DE LA CLASE MAYOR
+    // ========================================================================
+    const btnCamara = document.getElementById("btn-foto-clase");
+    const inputCamFile = document.getElementById("input-camara-file");
+
+    btnCamara.addEventListener("click", () => inputCamFile.click());
+
+    inputCamFile.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          carpetasFotos[claseActivaOperativa].push(ev.target.result);
+          renderizarGaleriaOperativa();
+          alert(`Foto guardada con éxito en la carpeta: ${claseActivaOperativa}`);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // ========================================================================
+    // 11. EXPORTACIÓN A ZIP CON FOTOS EN SUBCARPETAS
+    // ========================================================================
+    document.getElementById("btn-exportar-zip").addEventListener("click", () => {
+      const zip = new JSZip();
+
+      let informe = "INSPECCIÓN VISUAL MT - TECSUR / LDS\n===================================\n\n";
+      Object.entries(registrosInspeccion).forEach(([c, subs]) => {
+        informe += `[CLASE: ${c.toUpperCase()}]\n`;
+        Object.entries(subs).forEach(([s, v]) => {
+          informe += `  ${s} ➔ ${v || '[Sin registrar]'}\n`;
+        });
+        informe += "\n";
+      });
+      zip.file("Inspeccion_MT_Reporte.txt", informe);
+
+      let fotosTotales = 0;
+      Object.entries(carpetasFotos).forEach(([c, imgs]) => {
+        if (imgs.length > 0) {
+          const nombreCarpeta = "Fotos_" + c.replace(/[\/\s]/g, "_");
+          const folder = zip.folder(nombreCarpeta);
+          imgs.forEach((b64, idx) => {
+            const dataBase64 = b64.split(',')[1];
+            folder.file(`evidencia_${idx+1}.jpg`, dataBase64, { base64: true });
+            fotosTotales++;
+          });
+        }
+      });
+
+      zip.generateAsync({ type: "blob" }).then(content => {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(content);
+        link.download = `Inspeccion_MT_${Date.now()}.zip`;
+        link.click();
+        alert(`Exportación finalizada. Total fotos empaquetadas: ${fotosTotales}`);
       });
     });
 
-    document.getElementById("btn-descargar-txt").addEventListener("click", () => {
-      const contenido = `REPORTE DE ENTRENAMIENTO NLU - REDES MT\n` +
-                        `=======================================\n` +
-                        `Fecha: ${new Date().toISOString()}\n` +
-                        `Época de Convergencia: ${epocaActual}\n\n` +
-                        `[PARAMETROS FINALES]\n` +
-                        `W_Sintactico (Ws): ${W_sint.toFixed(6)}\n` +
-                        `W_Semantico  (Wm): ${W_sem.toFixed(6)}\n` +
-                        `Bias         (b) : ${Bias.toFixed(6)}\n\n` +
-                        `[HISTORIAL RECIENTE]\n` +
-                        JSON.stringify(historial, null, 2);
+    // ========================================================================
+    // 12. ALTERNAR MODO LABORATORIO VS INSPECCIÓN OPERATIVA
+    // ========================================================================
+    const btnToggleModo = document.getElementById("btn-toggle-modo");
+    const secLab = document.getElementById("contenedor-laboratorio");
+    const secOp = document.getElementById("contenedor-operativo");
+    let enModoLab = true;
 
-      const blob = new Blob([contenido], { type: "text/plain;charset=utf-8" });
+    btnToggleModo.addEventListener("click", () => {
+      enModoLab = !enModoLab;
+      if (enModoLab) {
+        btnToggleModo.innerText = "Modo: Inspección";
+        btnToggleModo.className = "bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg shadow transition";
+        secLab.classList.remove("hidden");
+        secOp.classList.add("hidden");
+        dibujarGraficas();
+      } else {
+        btnToggleModo.innerText = "Modo: Laboratorio (Pesos)";
+        btnToggleModo.className = "bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg shadow transition";
+        secLab.classList.add("hidden");
+        secOp.classList.remove("hidden");
+        inicializarVistaOperativa();
+      }
+    });
+
+    // COPIADO Y LIMPIEZA
+    document.getElementById("btn-copiar-pesos").addEventListener("click", () => {
+      const txt = `PESOS_NLU_CCE:\nW_sintactico = ${W_sint.toFixed(4)}\nW_semantico = ${W_sem.toFixed(4)}\nEpoca = ${epocaActual}`;
+      navigator.clipboard.writeText(txt).then(() => alert("¡Pesos copiados al portapapeles!\n\n" + txt));
+    });
+
+    document.getElementById("btn-descargar-txt").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify({ W_sint, W_sem, epocaActual, seriesLoss, seriesWs, seriesWm, historial }, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `Pesos_NLU_Epoca_${epocaActual}.txt`;
+      a.download = `Pesos_CCE_Epoca_${epocaActual}.json`;
       a.click();
     });
 
     document.getElementById("btn-limpiar-historial").addEventListener("click", () => {
-      if (confirm("¿Deseas reiniciar el contador de épocas y la bitácora? (Los pesos se conservarán)")) {
+      if (confirm("¿Reiniciar bitácora, épocas y gráficas?")) {
         historial = [];
+        seriesLoss = [];
+        seriesWs = [];
+        seriesWm = [];
         epocaActual = 0;
         refrescarConsolaPesos();
       }
     });
 
-    // Iniciar con pesos guardados
+    // Iniciar con pesos guardados y gráficas renderizadas
     refrescarConsolaPesos();
   </script>
 </body>
