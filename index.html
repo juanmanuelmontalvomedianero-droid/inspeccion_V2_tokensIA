@@ -3,552 +3,445 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Inspección MT - Sistema Visual, Termográfico y Eléctrico</title>
+  <title>Laboratorio NLU - Entrenamiento Dual Redes MT</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
-    :root {
-      --bg-dark: #071322;
-      --panel-dark: #0f2238;
-      --panel-border: #1e3a5f;
-      --accent-cyan: #38bdf8;
-      --accent-green: #10b981;
-    }
-    body {
-      background-color: var(--bg-dark);
-      color: #f1f5f9;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .panel-box {
-      background-color: var(--panel-dark);
-      border: 1px solid var(--panel-border);
-      border-radius: 12px;
-    }
-    select, input, textarea {
-      background-color: #091829 !important;
-      color: #f8fafc !important;
-      border: 1px solid var(--panel-border) !important;
-    }
-    select:focus, input:focus, textarea:focus {
-      outline: none !important;
-      border-color: var(--accent-cyan) !important;
-      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) !important;
-    }
+    body { background-color: #071322; color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .panel { background-color: #0f2238; border: 1px solid #1e3a5f; border-radius: 10px; }
+    input, select, textarea { background-color: #091829 !important; color: #f8fafc !important; border: 1px solid #1e3a5f !important; border-radius: 6px; }
+    .badge-math { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
   </style>
 </head>
-<body class="p-3 max-w-xl mx-auto pb-32">
+<body class="p-3 max-w-xl mx-auto pb-28">
 
-  <!-- ENCABEZADO Y TIPO DE INSPECCIÓN -->
-  <header class="mb-4">
-    <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-3">
-      <h1 class="text-lg font-black tracking-wide text-sky-400 flex items-center gap-2">
-        <span>⚡</span> REDES MT (DISTRIBUCIÓN)
-      </h1>
-      <button id="btn-config" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded-md text-slate-300">
-        ⚙️ Pesos NLU
-      </button>
+  <!-- CABECERA -->
+  <header class="mb-3 border-b border-slate-700 pb-2 flex justify-between items-center">
+    <div>
+      <h1 class="text-base font-black text-sky-400">⚡ LABORATORIO DE ENTRENAMIENTO NLU</h1>
+      <p class="text-[10px] text-slate-400">Optimización por Descenso de Gradiente (SGD)</p>
     </div>
-
-    <!-- SELECTOR DE LAS 3 MODALIDADES PRINCIPALES -->
-    <div class="panel-box p-3">
-      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-        Tipo de Inspección Operativa:
-      </label>
-      <select id="sel-tipo-inspeccion" class="w-full p-2.5 rounded-lg text-sm font-semibold text-sky-300 border">
-        <option value="VISUAL" selected>1. INSP. VISUAL (Matriz de Cuadrilla)</option>
-        <option value="TERMOGRAFICA">2. INSP. TERMOGRÁFICA (Puntos Calientes / Delta T)</option>
-        <option value="PARAMETROS_ELECTRICOS">3. INSP. PARÁMETROS ELÉCTRICOS (V, I, Cos φ, PAT)</option>
-      </select>
-    </div>
+    <span class="text-[10px] bg-slate-800 text-teal-400 border border-teal-700 px-2 py-1 rounded font-mono">
+      Offline Engine
+    </span>
   </header>
 
-  <!-- PANEL DE CALIBRACIÓN DE PESOS NLU (MODAL OCULTO) -->
-  <div id="modal-pesos" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="panel-box p-5 w-full max-w-md border-sky-500/50 shadow-2xl">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-sm font-bold text-sky-400">Ajuste de Pesos y Umbrales NLU</h3>
-        <button id="btn-cerrar-pesos" class="text-slate-400 hover:text-white text-base">✕</button>
-      </div>
-      <div class="space-y-4 text-xs">
-        <div>
-          <div class="flex justify-between mb-1">
-            <span>Peso Sintáctico (W_sint):</span>
-            <span id="lbl-wsint" class="font-mono text-sky-400">0.70</span>
-          </div>
-          <input type="range" id="rng-wsint" min="0" max="1" step="0.05" value="0.70" class="w-full accent-sky-400">
-        </div>
-        <div>
-          <div class="flex justify-between mb-1">
-            <span>Peso Semántico (W_sem):</span>
-            <span id="lbl-wsem" class="font-mono text-emerald-400">0.30</span>
-          </div>
-          <input type="range" id="rng-wsem" min="0" max="1" step="0.05" value="0.30" class="w-full accent-emerald-400">
-        </div>
-        <div>
-          <div class="flex justify-between mb-1">
-            <span>Umbral Mínimo de Aceptación (Threshold):</span>
-            <span id="lbl-th" class="font-mono text-amber-400">0.65</span>
-          </div>
-          <input type="range" id="rng-th" min="0.4" max="0.9" step="0.05" value="0.65" class="w-full accent-amber-400">
-        </div>
-      </div>
-      <button id="btn-guardar-pesos" class="mt-4 w-full bg-sky-600 hover:bg-sky-500 py-2 rounded-lg text-xs font-bold text-white transition">
-        Confirmar Calibración
+  <!-- 1. CONSOLA DE PESOS OFICIALES PARA ANOTAR PERSONALMENTE -->
+  <section class="panel p-3 mb-3 border-l-4 border-l-amber-400">
+    <div class="flex justify-between items-center mb-2">
+      <h2 class="text-xs font-bold text-amber-300 uppercase tracking-wider">
+        📋 Matriz de Pesos Resultantes (Para Apunte)
+      </h2>
+      <button id="btn-copiar-pesos" class="text-[10px] bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded transition">
+        📋 Copiar Pesos
       </button>
     </div>
-  </div>
 
-  <!-- CONTENEDOR 1: MODO INSP. VISUAL (ESQUEMA COMPLETO DE LIBRETA) -->
-  <main id="seccion-visual" class="space-y-4">
-    
-    <!-- BARRA DE ENTRADA POR VOZ Y ACCIONES RÁPIDAS -->
-    <section class="panel-box p-3">
-      <div class="flex justify-between items-center mb-1">
-        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-          Entrada por Voz / Dictado Técnico:
+    <!-- TARJETAS DE VALORES EXACTOS -->
+    <div class="grid grid-cols-3 gap-2 text-center text-xs mb-2">
+      <div class="bg-slate-950 p-2 rounded border border-slate-800">
+        <span class="text-[10px] text-slate-400 block">W_Sintáctico (Ws)</span>
+        <span id="txt-val-wsint" class="text-sm font-bold text-sky-400 badge-math">0.7000</span>
+      </div>
+      <div class="bg-slate-950 p-2 rounded border border-slate-800">
+        <span class="text-[10px] text-slate-400 block">W_Semántico (Wm)</span>
+        <span id="txt-val-wsem" class="text-sm font-bold text-emerald-400 badge-math">0.3000</span>
+      </div>
+      <div class="bg-slate-950 p-2 rounded border border-slate-800">
+        <span class="text-[10px] text-slate-400 block">Bias / Sesgo (b)</span>
+        <span id="txt-val-bias" class="text-sm font-bold text-amber-400 badge-math">0.0000</span>
+      </div>
+    </div>
+
+    <!-- STRING FORMAL PARA COPIAR EN LIBRETA / REPORTE -->
+    <div class="bg-slate-950 p-2 rounded border border-slate-800 text-[11px] font-mono text-slate-300 flex justify-between items-center">
+      <span id="cadena-pesos" class="truncate">W = [Ws: 0.7000, Wm: 0.3000, b: 0.0000] | Época: 0</span>
+      <button id="btn-descargar-txt" class="text-[10px] text-sky-400 underline ml-2 shrink-0">Descargar .txt</button>
+    </div>
+  </section>
+
+  <!-- 2. BANCO DE PRUEBA Y EVALUACIÓN POR ORACIÓN -->
+  <section class="panel p-3 mb-3 space-y-3">
+    <div class="flex justify-between items-center">
+      <h3 class="text-xs font-bold text-sky-400 uppercase">Entrada de Oración a Evaluar</h3>
+      <span id="lbl-tasa-aprendizaje" class="text-[10px] text-slate-400 font-mono">η (Tasa): 0.08</span>
+    </div>
+
+    <div>
+      <textarea id="in-frase" rows="2" placeholder="Dicta la frase de campo: 'Poste concreto 13 metros con base rajada', 'DMS incumple predio a 1.8 metros con manga'..." class="w-full p-2 text-xs"></textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2">
+      <div>
+        <label class="block text-[10px] text-slate-400 mb-1">Clase Mayor:</label>
+        <select id="sel-clase" class="w-full p-2 text-xs font-semibold text-amber-300">
+          <option value="Poste">Poste</option>
+          <option value="Seccionadores / Cut Out">Seccionadores / Cut Out</option>
+          <option value="DMS">DMS</option>
+          <option value="Aisladores">Aisladores</option>
+          <option value="Puesta a tierra / PAT">Puesta a tierra / PAT</option>
+          <option value="Retenida">Retenida</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-[10px] text-slate-400 mb-1">Subclase a entrenar:</label>
+        <select id="sel-subclase" class="w-full p-2 text-xs font-semibold text-sky-300">
+          <!-- Dinámico -->
+        </select>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between bg-slate-950 p-2 rounded border border-slate-800">
+      <span class="text-xs text-slate-300">Etiqueta esperada (Target Y):</span>
+      <div class="flex gap-2">
+        <label class="flex items-center gap-1 text-xs text-emerald-400 cursor-pointer">
+          <input type="radio" name="target-val" value="1.0" checked class="accent-emerald-500"> Positivo (1.0)
         </label>
-        <span id="status-audio" class="text-[10px] text-emerald-400 font-mono">Audio Buffer: Listo</span>
+        <label class="flex items-center gap-1 text-xs text-rose-400 cursor-pointer">
+          <input type="radio" name="target-val" value="0.0" class="accent-rose-500"> Negativo (0.0)
+        </label>
       </div>
-      <textarea id="txt-dictado" rows="2" placeholder="Dicta con el teclado iOS/Android: 'Poste concreto 13m con base fisurada, seccionador cut out con descarga, DMS incumple predio distancia 1.8 metros con manga'..." class="w-full p-2 text-xs rounded-lg"></textarea>
-      
-      <div class="grid grid-cols-2 gap-2 mt-2">
-        <button id="btn-procesar-dual" class="bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow">
-          <span>⚡</span> Clasificar Oración
-        </button>
-        <button id="btn-camara" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow">
-          <span>📷</span> Foto de Clase
-        </button>
-      </div>
-      <input type="file" id="input-camara" accept="image/*" capture="environment" class="hidden">
-    </section>
+    </div>
 
-    <!-- NAVEGADOR DE CLASES MAYORES -->
-    <section class="panel-box p-3">
-      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-        Seleccionar Clase Mayor a Inspeccionar:
-      </label>
-      <select id="sel-clase-mayor" class="w-full p-2.5 rounded-lg text-xs font-bold text-amber-300 border">
-        <!-- Generado dinámicamente -->
-      </select>
-    </section>
-
-    <!-- DETALLE DINÁMICO DE LA CLASE MAYOR SELECCIONADA -->
-    <section id="card-clase-activa" class="panel-box p-4 border-l-4 border-l-sky-400">
-      
-      <!-- ENCABEZADO Y DIAGRAMA DE REFERENCIA -->
-      <div class="flex flex-col sm:flex-row items-center gap-3 pb-3 border-b border-slate-700/80 mb-3">
-        <div id="contenedor-grafico-ref" class="w-24 h-24 bg-slate-950/80 rounded-lg p-2 border border-slate-700 flex items-center justify-center shrink-0">
-          <!-- SVG representativo según la clase -->
-        </div>
-        <div class="w-full text-center sm:text-left">
-          <span class="text-[10px] font-mono text-sky-400 uppercase tracking-widest">Activo Seleccionado</span>
-          <h2 id="titulo-clase-activa" class="text-base font-extrabold text-white">POSTE</h2>
-          <p id="desc-clase-activa" class="text-[11px] text-slate-400 mt-0.5">Estructura de soporte, fuste, empotramiento y rotulado técnico.</p>
-          <div class="flex items-center gap-2 mt-2 justify-center sm:justify-start">
-            <span id="badge-contador-fotos" class="text-[10px] bg-slate-800 text-emerald-300 px-2 py-0.5 rounded border border-emerald-700/50 font-mono">
-              📁 Fotos en esta clase: 0
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- LISTA DE SUBCLASES (CLASE ➔ VALOR) INICIALMENTE SIN VALORES -->
-      <div class="mb-3">
-        <div class="flex justify-between items-center mb-2">
-          <h3 class="text-xs font-bold text-sky-400 tracking-wider uppercase">Subclases y Variables de Inspección:</h3>
-          <span class="text-[10px] text-slate-500 italic">Formato: clase ➔ valor</span>
-        </div>
-        <div id="lista-subclases" class="space-y-1.5 max-h-80 overflow-y-auto pr-1">
-          <!-- Subclases inyectadas por JS -->
-        </div>
-      </div>
-
-      <!-- GALERÍA ESPECÍFICA DE LA CLASE MAYOR -->
-      <div class="border-t border-slate-800 pt-2">
-        <h4 class="text-[11px] font-bold text-slate-400 mb-1.5">Fotografías Asociadas a esta Carpeta:</h4>
-        <div id="galeria-clase-activa" class="grid grid-cols-4 gap-2 min-h-[50px] bg-slate-950/40 p-2 rounded-lg border border-slate-800/80">
-          <p class="text-[11px] text-slate-500 italic col-span-4 text-center py-2">Sin capturas para esta clase aún.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- RESUMEN GENERAL Y DESCARGA EN ZIP CON CARPETAS -->
-    <section class="panel-box p-3 space-y-2">
-      <div class="flex justify-between items-center text-xs">
-        <span class="text-slate-400">Total variables inspeccionadas:</span>
-        <span id="lbl-total-registrados" class="font-mono font-bold text-emerald-400">0 llenadas</span>
-      </div>
-      <button id="btn-descargar-zip" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 font-bold py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition">
-        <span>📦</span> Exportar Estructura y Fotos en Carpetas (.ZIP)
+    <!-- BOTONES DE INFERENCIA Y ACTUALIZACIÓN DE GRADIENTE -->
+    <div class="grid grid-cols-2 gap-2 pt-1">
+      <button id="btn-inferir" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-md text-xs transition">
+        🔍 1. Medir Valores y Error
       </button>
-    </section>
-
-  </main>
-
-  <!-- CONTENEDOR 2: INSP. TERMOGRÁFICA (EN ESPERA) -->
-  <main id="seccion-termografica" class="hidden panel-box p-6 text-center space-y-3">
-    <div class="text-4xl text-amber-400">🌡️</div>
-    <h2 class="text-base font-bold text-white">Inspección Termográfica</h2>
-    <p class="text-xs text-slate-400 max-w-sm mx-auto">
-      Módulo para registro de temperatura ambiente, emisividad, cámara infrarroja, delta de temperatura (ΔT) y severidad térmica según norma técnica.
-    </p>
-    <div class="inline-block bg-slate-800 text-amber-300 text-xs px-3 py-1 rounded-full border border-amber-500/30">
-      Disponible al cambiar selector de modo
+      <button id="btn-ajustar" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-md text-xs transition">
+        📈 2. Actualizar Pesos (SGD)
+      </button>
     </div>
-  </main>
+  </section>
 
-  <!-- CONTENEDOR 3: INSP. PARÁMETROS ELÉCTRICOS (EN ESPERA) -->
-  <main id="seccion-electricos" class="hidden panel-box p-6 text-center space-y-3">
-    <div class="text-4xl text-sky-400">📊</div>
-    <h2 class="text-base font-bold text-white">Parámetros Eléctricos</h2>
-    <p class="text-xs text-slate-400 max-w-sm mx-auto">
-      Módulo de medición de tensión de línea y fase (kV), corrientes de carga (A), balance de fases, factor de potencia (cos φ) y resistencia óhmica de puesta a tierra (Ω).
-    </p>
-    <div class="inline-block bg-slate-800 text-sky-300 text-xs px-3 py-1 rounded-full border border-sky-500/30">
-      Disponible al cambiar selector de modo
+  <!-- 3. DESGLOSE MATEMÁTICO DE LA ORACIÓN EN TIEMPO REAL -->
+  <section class="panel p-3 mb-3 text-xs">
+    <h3 class="text-xs font-bold text-slate-300 mb-2 uppercase tracking-wide">
+      🔬 Telemetría de la Inferencia:
+    </h3>
+    <div class="grid grid-cols-2 gap-2 badge-math text-[11px]">
+      <div class="bg-slate-950 p-2 rounded border border-slate-800">
+        <span class="text-slate-400 block text-[10px]">Valor Sintáctico (S_sint):</span>
+        <span id="tel-sint" class="text-sky-400 font-bold text-sm">0.0000</span>
+      </div>
+      <div class="bg-slate-950 p-2 rounded border border-slate-800">
+        <span class="text-slate-400 block text-[10px]">Valor Semántico (S_sem):</span>
+        <span id="tel-sem" class="text-emerald-400 font-bold text-sm">0.0000</span>
+      </div>
+      <div class="bg-slate-950 p-2 rounded border border-slate-800">
+        <span class="text-slate-400 block text-[10px]">Salida Calculada (Ŷ):</span>
+        <span id="tel-yhat" class="text-amber-400 font-bold text-sm">0.0000</span>
+      </div>
+      <div class="bg-slate-950 p-2 rounded border border-slate-800">
+        <span class="text-slate-400 block text-[10px]">Error Instantáneo (e = Y - Ŷ):</span>
+        <span id="tel-err" class="text-rose-400 font-bold text-sm">0.0000</span>
+      </div>
     </div>
-  </main>
+    <div class="mt-2 bg-slate-950 p-2 rounded border border-slate-800 flex justify-between items-center text-[11px] badge-math">
+      <span class="text-slate-400">Pérdida Cuadrática (Loss = ½ e²):</span>
+      <span id="tel-loss" class="text-purple-400 font-bold">0.000000</span>
+    </div>
+  </section>
 
-  <!-- SCRIPT CON EL CATÁLOGO COMPLETO, ESQUEMA Y NAVEGACIÓN -->
+  <!-- 4. HISTORIAL DE ENTRENAMIENTO POR ÉPOCAS / ORACIONES -->
+  <section class="panel p-3">
+    <div class="flex justify-between items-center mb-2">
+      <h3 class="text-xs font-bold text-slate-300 uppercase">Bitácora de Épocas / Gradientes</h3>
+      <button id="btn-limpiar-historial" class="text-[10px] text-slate-400 hover:text-rose-400">Limpiar</button>
+    </div>
+    <div class="max-h-52 overflow-y-auto border border-slate-800 rounded bg-slate-950 text-[10px] badge-math">
+      <table class="w-full text-left border-collapse">
+        <thead class="bg-slate-900 sticky top-0 border-b border-slate-800 text-slate-400">
+          <tr>
+            <th class="p-1.5">Época</th>
+            <th class="p-1.5">S_sint</th>
+            <th class="p-1.5">S_sem</th>
+            <th class="p-1.5">Error (e)</th>
+            <th class="p-1.5">Nuevo Ws</th>
+            <th class="p-1.5">Nuevo Wm</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-historial-body">
+          <tr>
+            <td colspan="6" class="p-3 text-center text-slate-500 italic">No hay iteraciones registradas aún.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- MOTOR MATEMÁTICO Y DE ENTRENAMIENTO -->
   <script>
-    // 1. ÁRBOL EXACTO DE TU LIBRETA TÉCNICA (17 CLASES MAYORES)
-    const ESQUEMA_LIBRETA = {
+    // ESQUEMA DE ENTIDADES EXTRAÍDAS DE LA LIBRETA TÉCNICA
+    const ESQUEMA_TOKENS = {
       "Poste": {
-        descripcion: "Soporte físico, fuste, empotramiento, inclinación y rotulado",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="50" y1="95" x2="50" y2="15"/><line x1="30" y1="25" x2="70" y2="25"/><line x1="40" y1="95" x2="60" y2="95"/><circle cx="50" cy="15" r="4" class="fill-sky-400"/></svg>`,
-        subclases: [
-          "Estado Rotulado", "Estado Etiquetado", "Código", "Marca", 
-          "Material", "Altura", "Estado Cimentación", "Propietario", 
-          "Estado Inclinación", "Estado Base", "Estado Cuerpo"
-        ]
-      },
-      "Red MT aérea": {
-        descripcion: "Conductor aéreo de media tensión, vano, cruce y calibre",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><path d="M10,40 Q50,75 90,40"/><path d="M10,25 Q50,60 90,25"/><line x1="10" y1="20" x2="10" y2="80"/><line x1="90" y1="20" x2="90" y2="80"/></svg>`,
-        subclases: [
-          "Sección", "Material", "Tipo (Desnudo/Aislado)", 
-          "Estado Conductor/Cable", "Mangas", "Cruce de Vía"
-        ]
-      },
-      "Red MT subterránea": {
-        descripcion: "Derivaciones subterráneas, transición aéreo-subterráneo",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="35" y="20" width="30" height="60" rx="5"/><line x1="50" y1="10" x2="50" y2="90"/><path d="M25,85 L75,85"/></svg>`,
-        subclases: [
-          "Sección", "Material", "Tipo", "Estado", 
-          "Terminales", "Subida/Bajada"
-        ]
-      },
-      "Rieles / Protección Impacto": {
-        descripcion: "Guardavías, defensas vehiculares y deflector de choques",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="20" y="45" width="60" height="20" rx="3"/><line x1="30" y1="65" x2="30" y2="85"/><line x1="70" y1="65" x2="70" y2="85"/></svg>`,
-        subclases: ["Estado Riel (Corrosión / Impacto)", "Tipo de Suelo", "Requiere Riel"]
-      },
-      "Conectores / Empalmes": {
-        descripcion: "Puentes de conexión, prensas de derivación y manguitos",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><circle cx="40" cy="50" r="12"/><circle cx="60" cy="50" r="12"/><line x1="15" y1="50" x2="28" y2="50"/><line x1="72" y1="50" x2="85" y2="50"/></svg>`,
-        subclases: ["Estado Corrosión", "Conductor 1", "Conductor 2"]
-      },
-      "Grapas": {
-        descripcion: "Herrajes de suspensión, amarre y retención de fases",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><path d="M30,30 L70,30 L60,70 L40,70 Z"/><circle cx="50" cy="50" r="6" class="fill-sky-400"/></svg>`,
-        subclases: ["Estado Corrosión"]
-      },
-      "Aisladores": {
-        descripcion: "Poliméricos o porcelana, campanas, polución y tracking",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="50" y1="15" x2="50" y2="85"/><rect x="30" y="30" width="40" height="10" rx="3"/><rect x="33" y="45" width="34" height="10" rx="3"/><rect x="36" y="60" width="28" height="10" rx="3"/></svg>`,
-        subclases: ["Material", "Contaminación", "Descarga", "Requiere Cambio"]
-      },
-      "Ménsulas": {
-        descripcion: "Soportes en voladizo, concreto o metálicas",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="25" y1="20" x2="25" y2="80"/><line x1="25" y1="35" x2="80" y2="35"/><line x1="25" y1="65" x2="70" y2="35"/></svg>`,
-        subclases: ["Material", "Estado", "Diagonales"]
-      },
-      "Plataforma": {
-        descripcion: "Estructura portante para transformadores o maniobra",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="15" y="45" width="70" height="12"/><line x1="30" y1="57" x2="30" y2="85"/><line x1="70" y1="57" x2="70" y2="85"/></svg>`,
-        subclases: ["Material (Concreto / Madera / Polimérica)", "Estado"]
-      },
-      "Palomilla": {
-        descripcion: "Herrajes auxiliares de soporte y alineamiento",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="20" y1="50" x2="80" y2="50"/><path d="M40,50 L50,30 L60,50 Z"/></svg>`,
-        subclases: ["Material", "Estado"]
+        subclases: ["Material", "Altura", "Estado Base", "Estado Inclinación", "Estado Cimentación"],
+        tokens: {
+          "Material": ["concreto", "cemento", "cac", "madera", "metal", "fierro", "prfv"],
+          "Altura": ["13", "11", "15", "9", "8", "metros", "m", "alto"],
+          "Estado Base": ["carcomida", "fisurada", "buen estado", "concreto desprendido", "perdida de seccion", "armadura expuesta"],
+          "Estado Inclinación": ["inclinado", "mayor a 5", "menor a 5", "al plomo", "recto", "desplomado"],
+          "Estado Cimentación": ["con cimentacion", "sin cimentacion", "dado", "fundacion"]
+        }
       },
       "Seccionadores / Cut Out": {
-        descripcion: "Cortacircuitos fusibles, portafusibles y mecanismos de corte",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="20" y1="50" x2="40" y2="50"/><line x1="40" y1="50" x2="70" y2="25"/><circle cx="40" cy="50" r="3"/><circle cx="75" cy="50" r="3"/><line x1="75" y1="50" x2="85" y2="50"/></svg>`,
-        subclases: ["Contaminación", "Descarga / Estado", "Corrosión"]
-      },
-      "Equipo - Transformador": {
-        descripcion: "Transformador aéreo, cuba, fugas dieléctricas y bushings",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="25" y="30" width="50" height="45" rx="4"/><line x1="35" y1="20" x2="35" y2="30"/><line x1="50" y1="15" x2="50" y2="30"/><line x1="65" y1="20" x2="65" y2="30"/></svg>`,
-        subclases: ["Corrosión", "Aceite", "Objetos Cercanos"]
-      },
-      "Tableros": {
-        descripcion: "Cajas de distribución BT, control o alumbrado público",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="25" y="20" width="50" height="60" rx="4"/><line x1="45" y1="20" x2="45" y2="80"/><circle cx="40" cy="50" r="2"/></svg>`,
-        subclases: ["Tamaño", "Corrosión", "Ferretería", "Estado General"]
-      },
-      "Puesta a tierra / PAT": {
-        descripcion: "Bajante de cobre, electrodo, rotulado y estado físico",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="50" y1="20" x2="50" y2="55"/><line x1="25" y1="55" x2="75" y2="55"/><line x1="35" y1="65" x2="65" y2="65"/><line x1="45" y1="75" x2="55" y2="75"/></svg>`,
-        subclases: ["Conexión", "Rotulado", "Estado Pozo a Tierra", "¿Robado?"]
-      },
-      "Retenida": {
-        descripcion: "Tirante de acero, aislador tipo nuez y canaleta",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="20" y1="85" x2="80" y2="15"/><circle cx="50" cy="50" r="6" class="fill-sky-400"/></svg>`,
-        subclases: ["Tipo", "Aislador de Retenida", "Corrosión", "Canaleta"]
+        subclases: ["Descarga / Estado", "Corrosión", "Contaminación"],
+        tokens: {
+          "Descarga / Estado": ["descarga", "fogueado", "chisporroteo", "caña caida", "descolgado", "conforme", "quemado"],
+          "Corrosión": ["corrosion", "oxido", "alta corrosion", "sin oxido"],
+          "Contaminación": ["polucion", "sucio", "salitre", "limpio"]
+        }
       },
       "DMS": {
-        descripcion: "Distancias mínimas de seguridad normativas (CNE / Osinergmin)",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-amber-400 fill-none stroke-[3]"><rect x="15" y="45" width="25" height="40"/><path d="M75,20 L75,85"/><line x1="40" y1="35" x2="75" y2="35" stroke-dasharray="4,4"/><path d="M40,35 L45,30 M40,35 L45,40"/></svg>`,
-        subclases: ["Incumple / Presenta", "Qué Concepto", "Distancia", "Manga"]
+        subclases: ["Incumple / Presenta", "Qué Concepto", "Distancia", "Manga"],
+        tokens: {
+          "Incumple / Presenta": ["incumple", "presenta", "riesgo", "cumple", "sin riesgo", "peligro"],
+          "Qué Concepto": ["predio", "casa", "red bt", "cartel", "letrero", "grifo", "fachada"],
+          "Distancia": ["metros", "m", "distancia", "un metro", "dos metros"],
+          "Manga": ["con manga", "sin manga", "cubierta", "manguera", "forro"]
+        }
       },
-      "Observaciones": {
-        descripcion: "Comentarios libres, hallazgos atípicos y notas de campo",
-        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="25" y="20" width="50" height="60" rx="4"/><line x1="35" y1="35" x2="65" y2="35"/><line x1="35" y1="50" x2="65" y2="50"/><line x1="35" y1="65" x2="55" y2="65"/></svg>`,
-        subclases: ["Observaciones / Comentarios"]
+      "Aisladores": {
+        subclases: ["Material", "Contaminación", "Descarga", "Requiere Cambio"],
+        tokens: {
+          "Material": ["polimerico", "porcelana"],
+          "Contaminación": ["salitre", "polucion", "sucio", "limpio"],
+          "Descarga": ["tracking", "fogueado", "descarga", "sin descarga"],
+          "Requiere Cambio": ["requiere cambio", "roto", "desportillado", "buen estado"]
+        }
+      },
+      "Puesta a tierra / PAT": {
+        subclases: ["Conexión", "Rotulado", "Estado Pozo a Tierra", "¿Robado?"],
+        tokens: {
+          "Conexión": ["conforme", "desconectada", "incompleta", "cable tierra"],
+          "Rotulado": ["rotulado conforme", "sin rotulo", "borroso"],
+          "Estado Pozo a Tierra": ["visible", "no visible", "tapa rota", "enterrado"],
+          "¿Robado?": ["robado", "cortado", "completo", "guillotinado"]
+        }
+      },
+      "Retenida": {
+        subclases: ["Tipo", "Aislador de Retenida", "Corrosión", "Canaleta"],
+        tokens: {
+          "Tipo": ["simple", "doble", "aerea", "no requiere"],
+          "Aislador de Retenida": ["nuez", "buen estado", "roto"],
+          "Corrosión": ["corrosion", "oxidada", "bueno"],
+          "Canaleta": ["con canaleta", "sin canaleta", "doblada"]
+        }
       }
     };
 
-    // 2. ESTADO EN MEMORIA VIRTUAL DE INSPECCIÓN Y FOTOGRAFÍAS
-    const registrosInspeccion = {};
-    const carpetasFotograficas = {};
+    // ESTADO DEL MODELO Y PARÁMETROS DE APRENDIZAJE
+    let W_sint = parseFloat(localStorage.getItem("w_sint")) || 0.7000;
+    let W_sem = parseFloat(localStorage.getItem("w_sem")) || 0.3000;
+    let Bias = parseFloat(localStorage.getItem("bias")) || 0.0000;
+    let tasaEta = 0.08;
+    let epocaActual = parseInt(localStorage.getItem("epoca_actual")) || 0;
+    let historial = JSON.parse(localStorage.getItem("historial_gradientes") || "[]");
 
-    // Inicializar registros vacíos (clase ➔ [Sin registrar])
-    Object.entries(ESQUEMA_LIBRETA).forEach(([clase, cfg]) => {
-      registrosInspeccion[clase] = {};
-      carpetasFotograficas[clase] = [];
-      cfg.subclases.forEach(sub => {
-        registrosInspeccion[clase][sub] = ""; // Sin registrar inicialmente
-      });
-    });
+    let evaluacionActual = null;
 
-    let claseMayorActiva = "Poste";
+    // REFRESCO DE PANELES Y FORMATO
+    function refrescarConsolaPesos() {
+      document.getElementById("txt-val-wsint").innerText = W_sint.toFixed(4);
+      document.getElementById("txt-val-wsem").innerText = W_sem.toFixed(4);
+      document.getElementById("txt-val-bias").innerText = Bias.toFixed(4);
 
-    // 3. RENDERIZADO DEL SELECTOR DE CLASES MAYORES
-    const selClaseMayor = document.getElementById("sel-clase-mayor");
-    Object.keys(ESQUEMA_LIBRETA).forEach(clase => {
-      const opt = document.createElement("option");
-      opt.value = clase;
-      opt.innerText = clase;
-      selClaseMayor.appendChild(opt);
-    });
+      const strPesos = `W = [Ws: ${W_sint.toFixed(4)}, Wm: ${W_sem.toFixed(4)}, b: ${Bias.toFixed(4)}] | Época: ${epocaActual}`;
+      document.getElementById("cadena-pesos").innerText = strPesos;
 
-    // 4. ACTUALIZAR PANEL DE LA CLASE MAYOR SELECCIONADA
-    function renderClaseActiva(nombreClase) {
-      claseMayorActiva = nombreClase;
-      const cfg = ESQUEMA_LIBRETA[nombreClase];
+      localStorage.setItem("w_sint", W_sint);
+      localStorage.setItem("w_sem", W_sem);
+      localStorage.setItem("bias", Bias);
+      localStorage.setItem("epoca_actual", epocaActual);
+      localStorage.setItem("historial_gradientes", JSON.stringify(historial));
 
-      document.getElementById("titulo-clase-activa").innerText = nombreClase.toUpperCase();
-      document.getElementById("desc-clase-activa").innerText = cfg.descripcion;
-      document.getElementById("contenedor-grafico-ref").innerHTML = cfg.icono;
-
-      // Render de Subclases con formato: clase ➔ valor
-      const contSub = document.getElementById("lista-subclases");
-      contSub.innerHTML = "";
-
-      cfg.subclases.forEach(sub => {
-        const val = registrosInspeccion[nombreClase][sub];
-        const tieneValor = val !== "";
-
-        const div = document.createElement("div");
-        div.className = "flex items-center justify-between p-2 rounded-md bg-slate-900/90 border border-slate-800 text-xs";
-        div.innerHTML = `
-          <div class="flex items-center gap-1.5 overflow-hidden">
-            <span class="font-medium text-slate-300 truncate">${sub}</span>
-            <span class="text-sky-400 font-bold">➔</span>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <span class="font-mono text-[11px] ${tieneValor ? 'text-emerald-400 font-bold bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/50' : 'text-slate-500 italic'}">
-              ${tieneValor ? val : '[Sin registrar]'}
-            </span>
-            <button class="btn-editar-manual text-[10px] bg-slate-800 hover:bg-slate-700 text-sky-300 px-1.5 py-0.5 rounded" data-clase="${nombreClase}" data-sub="${sub}">✏️</button>
-          </div>
-        `;
-        contSub.appendChild(div);
-      });
-
-      // Render de Galería de fotos en su carpeta correspondiente
-      actualizarGaleriaClase();
-      actualizarContadorTotal();
+      poblarTablaHistorial();
     }
 
-    function actualizarGaleriaClase() {
-      const contGaleria = document.getElementById("galeria-clase-activa");
-      const fotos = carpetasFotograficas[claseMayorActiva];
-      const badge = document.getElementById("badge-contador-fotos");
+    // 1. MOTOR SINTÁCTICO: N-Gramas y Presencia Estructural de Ranuras
+    function calcValorSintactico(frase, listaTokens) {
+      const f = frase.toLowerCase();
+      let matches = 0;
+      listaTokens.forEach(t => {
+        const re = new RegExp(`\\b${t}\\b`, 'i');
+        if (re.test(f)) matches++;
+      });
+      // Normalización contra ventana óptima
+      const normalizador = Math.max(listaTokens.length * 0.35, 1);
+      return Math.min(matches / normalizador, 1.0);
+    }
 
-      badge.innerText = `📁 Fotos en Carpeta ${claseMayorActiva}: ${fotos.length}`;
-      contGaleria.innerHTML = "";
+    // 2. MOTOR SEMÁNTICO: Coeficiente de similitud difusa por bi-gramas de caracteres
+    function calcValorSemantico(frase, listaTokens) {
+      function extractBigrams(str) {
+        const set = new Set();
+        const clean = str.toLowerCase().replace(/\s+/g, ' ');
+        for (let i = 0; i < clean.length - 1; i++) {
+          set.add(clean.substring(i, i + 2));
+        }
+        return set;
+      }
 
-      if (fotos.length === 0) {
-        contGaleria.innerHTML = `<p class="text-[11px] text-slate-500 italic col-span-4 text-center py-2">Sin capturas para esta clase aún.</p>`;
+      const bgFrase = extractBigrams(frase);
+      if (bgFrase.size === 0) return 0.0;
+      let maxSim = 0.0;
+
+      listaTokens.forEach(t => {
+        const bgToken = extractBigrams(t);
+        let intersection = 0;
+        bgToken.forEach(bg => { if (bgFrase.has(bg)) intersection++; });
+        const union = bgFrase.size + bgToken.size - intersection;
+        const jaccard = union > 0 ? (intersection / union) : 0;
+        if (jaccard > maxSim) maxSim = jaccard;
+      });
+
+      return Math.min(maxSim * 1.6, 1.0); // Factor de escala para convergencia
+    }
+
+    // POBLAR SUBCLASES SEGÚN CLASE MAYOR
+    const selClase = document.getElementById("sel-clase");
+    const selSubclase = document.getElementById("sel-subclase");
+
+    function actualizarSubclases(clase) {
+      selSubclase.innerHTML = "";
+      ESQUEMA_TOKENS[clase].subclases.forEach(sub => {
+        const opt = document.createElement("option");
+        opt.value = sub;
+        opt.innerText = sub;
+        selSubclase.appendChild(opt);
+      });
+    }
+    selClase.addEventListener("change", (e) => actualizarSubclases(e.target.value));
+    actualizarSubclases("Poste");
+
+    // 3. MEDICIÓN E INFERENCIA (PASO 1)
+    document.getElementById("btn-inferir").addEventListener("click", () => {
+      const frase = document.getElementById("in-frase").value.trim();
+      if (!frase) return alert("Por favor ingresa o dicta una oración de prueba.");
+
+      const cMayor = selClase.value;
+      const sClase = selSubclase.value;
+      const tokens = ESQUEMA_TOKENS[cMayor].tokens[sClase] || [];
+
+      const targetY = parseFloat(document.querySelector('input[name="target-val"]:checked').value);
+
+      const s_sint = calcValorSintactico(frase, tokens);
+      const s_sem = calcValorSemantico(frase, tokens);
+
+      // Ecuación del Perceptrón Dual: Ŷ = (Ws * Ssint) + (Wm * Ssem) + Bias
+      const y_hat = Math.min(Math.max((W_sint * s_sint) + (W_sem * s_sem) + Bias, 0.0), 1.0);
+      const error = targetY - y_hat;
+      const loss = 0.5 * Math.pow(error, 2);
+
+      evaluacionActual = { s_sint, s_sem, y_hat, error, loss, targetY, frase, cMayor, sClase };
+
+      // Pintar telemetría
+      document.getElementById("tel-sint").innerText = s_sint.toFixed(4);
+      document.getElementById("tel-sem").innerText = s_sem.toFixed(4);
+      document.getElementById("tel-yhat").innerText = y_hat.toFixed(4);
+      document.getElementById("tel-err").innerText = (error >= 0 ? "+" : "") + error.toFixed(4);
+      document.getElementById("tel-loss").innerText = loss.toFixed(6);
+    });
+
+    // 4. ACTUALIZACIÓN POR DESCENSO DE GRADIENTE (PASO 2)
+    document.getElementById("btn-ajustar").addEventListener("click", () => {
+      if (!evaluacionActual) return alert("Primero realiza la evaluación con el botón 1.");
+
+      const { s_sint, s_sem, error } = evaluacionActual;
+
+      // REGLA DEL DELTA (GRADIENT DESCENT UPDATE):
+      // ΔW = η * error * feature
+      const deltaWs = tasaEta * error * s_sint;
+      const deltaWm = tasaEta * error * s_sem;
+      const deltaBias = tasaEta * error * 0.5;
+
+      W_sint = Math.max(W_sint + deltaWs, 0.05);
+      W_sem = Math.max(W_sem + deltaWm, 0.05);
+      Bias = Bias + deltaBias;
+
+      // Normalización de Pesos para mantener balance de escala
+      const factorNorm = W_sint + W_sem;
+      W_sint = W_sint / factorNorm;
+      W_sem = W_sem / factorNorm;
+
+      epocaActual++;
+
+      // Guardar registro en historial
+      historial.unshift({
+        epoca: epocaActual,
+        s_sint: s_sint.toFixed(3),
+        s_sem: s_sem.toFixed(3),
+        error: error.toFixed(3),
+        ws: W_sint.toFixed(4),
+        wm: W_sem.toFixed(4)
+      });
+      if (historial.length > 25) historial.pop();
+
+      refrescarConsolaPesos();
+
+      // Recalcular inferencia para mostrar el nuevo error reducido
+      document.getElementById("btn-inferir").click();
+    });
+
+    // TABLA HISTÓRICA
+    function poblarTablaHistorial() {
+      const tbody = document.getElementById("tabla-historial-body");
+      if (historial.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-500 italic">No hay iteraciones registradas aún.</td></tr>`;
         return;
       }
-
-      fotos.forEach((src, idx) => {
-        const div = document.createElement("div");
-        div.className = "relative aspect-square rounded-md overflow-hidden border border-slate-700 bg-black";
-        div.innerHTML = `
-          <img src="${src}" class="w-full h-full object-cover">
-          <span class="absolute bottom-0 right-0 bg-black/70 text-[9px] text-sky-300 px-1 font-mono">#${idx+1}</span>
+      tbody.innerHTML = "";
+      historial.forEach(h => {
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-slate-900 hover:bg-slate-900/50";
+        tr.innerHTML = `
+          <td class="p-1.5 font-bold text-amber-400">#${h.epoca}</td>
+          <td class="p-1.5 text-sky-400">${h.s_sint}</td>
+          <td class="p-1.5 text-emerald-400">${h.s_sem}</td>
+          <td class="p-1.5 ${parseFloat(h.error) === 0 ? 'text-slate-400' : 'text-rose-400'}">${h.error}</td>
+          <td class="p-1.5 text-slate-200">${h.ws}</td>
+          <td class="p-1.5 text-slate-200">${h.wm}</td>
         `;
-        contGaleria.appendChild(div);
+        tbody.appendChild(tr);
       });
     }
 
-    function actualizarContadorTotal() {
-      let totalLlenadas = 0;
-      Object.values(registrosInspeccion).forEach(campos => {
-        Object.values(campos).forEach(v => {
-          if (v !== "") totalLlenadas++;
-        });
-      });
-      document.getElementById("lbl-total-registrados").innerText = `${totalLlenadas} variables llenadas`;
-    }
-
-    selClaseMayor.addEventListener("change", (e) => {
-      renderClaseActiva(e.target.value);
-    });
-
-    // 5. EDICIÓN RÁPIDA MANUAL
-    document.addEventListener("click", (e) => {
-      if (e.target.classList.contains("btn-editar-manual")) {
-        const c = e.target.dataset.clase;
-        const s = e.target.dataset.sub;
-        const actual = registrosInspeccion[c][s];
-        const nuevo = prompt(`Ingresar valor para ${c} ➔ ${s}:`, actual);
-        if (nuevo !== null) {
-          registrosInspeccion[c][s] = nuevo.trim();
-          renderClaseActiva(c);
-        }
-      }
-    });
-
-    // 6. CAMBIO DE MODO PRINCIPAL DE INSPECCIÓN
-    const selTipo = document.getElementById("sel-tipo-inspeccion");
-    const secVisual = document.getElementById("seccion-visual");
-    const secTermo = document.getElementById("seccion-termografica");
-    const secElect = document.getElementById("seccion-electricos");
-
-    selTipo.addEventListener("change", (e) => {
-      const modo = e.target.value;
-      secVisual.classList.add("hidden");
-      secTermo.classList.add("hidden");
-      secElect.classList.add("hidden");
-
-      if (modo === "VISUAL") secVisual.classList.remove("hidden");
-      else if (modo === "TERMOGRAFICA") secTermo.classList.remove("hidden");
-      else if (modo === "PARAMETROS_ELECTRICOS") secElect.classList.remove("hidden");
-    });
-
-    // 7. CAPTURA Y ASIGNACIÓN DE FOTOGRAFÍAS A CARPETA DE LA CLASE MAYOR
-    const btnCam = document.getElementById("btn-camara");
-    const inputCam = document.getElementById("input-camara");
-
-    btnCam.addEventListener("click", () => inputCam.click());
-
-    inputCam.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          carpetasFotograficas[claseMayorActiva].push(ev.target.result);
-          actualizarGaleriaClase();
-          alert(`Foto guardada correctamente en la carpeta: ${claseMayorActiva}`);
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // 8. MOTOR DE ASIGNACIÓN NLU (DEMOSTRACIÓN DUAL EN TIEMPO REAL)
-    document.getElementById("btn-procesar-dual").addEventListener("click", () => {
-      const txt = document.getElementById("txt-dictado").value.trim().toLowerCase();
-      if (!txt) return;
-
-      // Normalización fonética rápida
-      const t = txt
-        .replace(/\b(cutao|cut aut|kutao)\b/g, "cut out")
-        .replace(/\b(de ms|de meses)\b/g, "dms")
-        .replace(/\b(cac|cemento)\b/g, "concreto");
-
-      // Ruteo de clase mayor detectada
-      if (t.includes("poste")) {
-        selClaseMayor.value = "Poste";
-        renderClaseActiva("Poste");
-        if (t.includes("concreto")) registrosInspeccion["Poste"]["Material"] = "CONCRETO";
-        if (t.match(/\b(11|12|13|14|15)\b/)) registrosInspeccion["Poste"]["Altura"] = t.match(/\b(11|12|13|14|15)\b/)[0] + " m";
-        if (t.includes("base")) registrosInspeccion["Poste"]["Estado Base"] = "Fisurada / Rajaduras";
-      }
-
-      if (t.includes("cut out") || t.includes("seccionador")) {
-        registrosInspeccion["Seccionadores / Cut Out"]["Descarga / Estado"] = t.includes("descarga") ? "DESCARGA / FOGUEADO" : "CONFORME";
-        if (t.includes("corrosion")) registrosInspeccion["Seccionadores / Cut Out"]["Corrosión"] = "ALTA CORROSIÓN";
-      }
-
-      if (t.includes("dms")) {
-        registrosInspeccion["DMS"]["Incumple / Presenta"] = t.includes("incumple") ? "SI (INCUMPLE)" : "NO (CUMPLE)";
-        if (t.includes("predio")) registrosInspeccion["DMS"]["Qué Concepto"] = "PREDIO";
-        const mDist = t.match(/(\d+(?:\.\d+)?)\s*(?:m|metros)/);
-        if (mDist) registrosInspeccion["DMS"]["Distancia"] = mDist[1] + " m";
-        registrosInspeccion["DMS"]["Manga"] = t.includes("manga") ? "SI TIENE" : "NO TIENE";
-      }
-
-      renderClaseActiva(selClaseMayor.value);
-      document.getElementById("txt-dictado").value = "";
-    });
-
-    // 9. EXPORTADOR A ZIP CON CARPETAS SEPARADAS PARA CADA CLASE
-    document.getElementById("btn-descargar-zip").addEventListener("click", () => {
-      const zip = new JSZip();
-      
-      // Crear archivo de texto estructurado de la inspección
-      let reporte = "REPORTE DE INSPECCIÓN VISUAL MT (TECSUR / LDS)\n==============================================\n\n";
-      Object.entries(registrosInspeccion).forEach(([clase, subcampos]) => {
-        reporte += `[CLASE MAYOR: ${clase.toUpperCase()}]\n`;
-        Object.entries(subcampos).forEach(([sub, val]) => {
-          reporte += `  ${sub} ➔ ${val || '[Sin registrar]'}\n`;
-        });
-        reporte += "\n";
-      });
-      zip.file("Inspeccion_Visual_MT.txt", reporte);
-
-      // Crear carpetas de fotos por cada clase mayor
-      let totalFotos = 0;
-      Object.entries(carpetasFotograficas).forEach(([clase, arrayFotos]) => {
-        if (arrayFotos.length > 0) {
-          const nombreCarpeta = "Fotos_" + clase.replace(/[\/\s]/g, "_");
-          const folder = zip.folder(nombreCarpeta);
-          arrayFotos.forEach((b64, idx) => {
-            const dataBase64 = b64.split(',')[1];
-            folder.file(`foto_${clase.toLowerCase()}_${idx+1}.jpg`, dataBase64, { base64: true });
-            totalFotos++;
-          });
-        }
-      });
-
-      zip.generateAsync({ type: "blob" }).then(content => {
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(content);
-        link.download = `Inspeccion_MT_${Date.now()}.zip`;
-        link.click();
-        alert(`Estructura exportada con éxito. Total fotos empaquetadas: ${totalFotos}`);
+    // ACCIONES DE COPIADO Y DESCARGA
+    document.getElementById("btn-copiar-pesos").addEventListener("click", () => {
+      const texto = `PESOS_NLU_CALIBRADOS:\nW_sintactico = ${W_sint.toFixed(4)}\nW_semantico = ${W_sem.toFixed(4)}\nBias = ${Bias.toFixed(4)}\nEpocas_Entrenadas = ${epocaActual}`;
+      navigator.clipboard.writeText(texto).then(() => {
+        alert("¡Pesos copiados al portapapeles!\n\n" + texto);
       });
     });
 
-    // 10. MODAL DE PESOS NLU
-    const modalPesos = document.getElementById("modal-pesos");
-    document.getElementById("btn-config").onclick = () => modalPesos.classList.remove("hidden");
-    document.getElementById("btn-cerrar-pesos").onclick = () => modalPesos.classList.add("hidden");
-    document.getElementById("btn-guardar-pesos").onclick = () => modalPesos.classList.add("hidden");
+    document.getElementById("btn-descargar-txt").addEventListener("click", () => {
+      const contenido = `REPORTE DE ENTRENAMIENTO NLU - REDES MT\n` +
+                        `=======================================\n` +
+                        `Fecha: ${new Date().toISOString()}\n` +
+                        `Época de Convergencia: ${epocaActual}\n\n` +
+                        `[PARAMETROS FINALES]\n` +
+                        `W_Sintactico (Ws): ${W_sint.toFixed(6)}\n` +
+                        `W_Semantico  (Wm): ${W_sem.toFixed(6)}\n` +
+                        `Bias         (b) : ${Bias.toFixed(6)}\n\n` +
+                        `[HISTORIAL RECIENTE]\n` +
+                        JSON.stringify(historial, null, 2);
 
-    document.getElementById("rng-wsint").oninput = (e) => document.getElementById("lbl-wsint").innerText = e.target.value;
-    document.getElementById("rng-wsem").oninput = (e) => document.getElementById("lbl-wsem").innerText = e.target.value;
-    document.getElementById("rng-th").oninput = (e) => document.getElementById("lbl-th").innerText = e.target.value;
+      const blob = new Blob([contenido], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Pesos_NLU_Epoca_${epocaActual}.txt`;
+      a.click();
+    });
 
-    // Inicializar en primera clase
-    renderClaseActiva("Poste");
+    document.getElementById("btn-limpiar-historial").addEventListener("click", () => {
+      if (confirm("¿Deseas reiniciar el contador de épocas y la bitácora? (Los pesos se conservarán)")) {
+        historial = [];
+        epocaActual = 0;
+        refrescarConsolaPesos();
+      }
+    });
+
+    // Iniciar con pesos guardados
+    refrescarConsolaPesos();
   </script>
 </body>
 </html>
