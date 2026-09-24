@@ -2,1063 +2,553 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inspección MT - TECSUR / LDS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Inspección MT - Sistema Visual, Termográfico y Eléctrico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     :root {
-      --bg-main: #0a192f;        /* Azul petróleo profundo */
-      --card-bg: #112240;        /* Azul marino intermedio */
-      --card-border: #1e3a5f;    /* Borde azul técnico */
-      --primary: #0284c7;        /* Azul primario vibrante */
-      --primary-hover: #0369a1;
-      --accent: #38bdf8;         /* Celeste cian para focos */
-      --success: #10b981;        /* Verde esmeralda */
-      --warning: #f59e0b;
-      --text-main: #f1f5f9;      /* Blanco perla */
-      --text-muted: #94a3b8;     /* Gris azulado */
-      --input-bg: #0d1b2a;       /* Azul noche para inputs */
+      --bg-dark: #071322;
+      --panel-dark: #0f2238;
+      --panel-border: #1e3a5f;
+      --accent-cyan: #38bdf8;
+      --accent-green: #10b981;
     }
     body {
+      background-color: var(--bg-dark);
+      color: #f1f5f9;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg-main);
-      margin: 0;
-      padding: 10px;
-      color: var(--text-main);
+      -webkit-tap-highlight-color: transparent;
     }
-    .container {
-      max-width: 600px;
-      margin: auto;
-    }
-    .panel {
-      background: var(--card-bg);
-      padding: 14px;
+    .panel-box {
+      background-color: var(--panel-dark);
+      border: 1px solid var(--panel-border);
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      margin-bottom: 12px;
-      border: 1px solid var(--card-border);
     }
-    h2, h3 {
-      margin: 0 0 10px 0;
-      color: var(--accent);
+    select, input, textarea {
+      background-color: #091829 !important;
+      color: #f8fafc !important;
+      border: 1px solid var(--panel-border) !important;
     }
-    h2 { font-size: 18px; }
-    h3 { font-size: 15px; }
-
-    .section-title {
-      font-size: 13px;
-      font-weight: bold;
-      color: var(--text-main);
-      background: #172a45;
-      padding: 8px 10px;
-      border-radius: 6px;
-      margin: 14px 0 8px 0;
-      border-left: 4px solid var(--accent);
-    }
-
-    /* Caja de dictado */
-    .input-box-container {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-    textarea {
-      width: 100%;
-      height: 70px;
-      padding: 10px;
-      background: var(--input-bg);
-      color: var(--text-main);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      box-sizing: border-box;
-      font-size: 15px;
-      font-family: inherit;
-      resize: none;
-    }
-    textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
-    }
-
-    .timer-bar-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 2px;
-    }
-    .timer-badge {
-      font-weight: bold;
-      color: var(--accent);
-    }
-    .timer-badge.active {
-      color: var(--warning);
-    }
-
-    .btn-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 8px;
-    }
-    button {
-      border: none;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: 0.2s;
-    }
-    .btn-process { background: var(--primary); color: white; }
-    .btn-process:active { background: var(--primary-hover); }
-    .btn-cam { background: var(--success); color: white; }
-    .btn-csv {
-      background: #0284c7;
-      color: white;
-      width: 100%;
-      margin-top: 10px;
-    }
-    .btn-csv:active { background: #0369a1; }
-
-    /* Monitor en tiempo real */
-    .rt-monitor {
-      background: #0d1b2a;
-      color: var(--text-main);
-      padding: 10px;
-      border-radius: 8px;
-      border-left: 4px solid var(--accent);
-      margin-top: 8px;
-      border: 1px solid var(--card-border);
-    }
-    .rt-title {
-      font-size: 11px;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-    .rt-tags-container {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-top: 6px;
-    }
-    .rt-item {
-      font-size: 13px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .badge-field {
-      background: #0369a1;
-      color: #fff;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 12px;
-    }
-    .badge-arrow { color: var(--accent); }
-    .badge-value {
-      background: #1e3a5f;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-      color: #e2e8f0;
-    }
-
-    /* Tabla de resumen */
-    .table-container {
-      max-height: 220px;
-      overflow-y: auto;
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      margin-top: 8px;
-      background: var(--input-bg);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      text-align: left;
-    }
-    th {
-      background: #172a45;
-      color: var(--accent);
-      font-weight: 600;
-      padding: 8px;
-      border-bottom: 1px solid var(--card-border);
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-    td {
-      padding: 7px 8px;
-      border-bottom: 1px solid #1e3a5f;
-      color: var(--text-main);
-    }
-    tr:nth-child(even) { background: #0f223a; }
-    .td-field { font-family: monospace; font-weight: 600; color: #38bdf8; }
-    .td-val { font-weight: 500; }
-    .empty-table-msg {
-      text-align: center;
-      padding: 16px;
-      color: var(--text-muted);
-      font-style: italic;
-    }
-
-    /* Galería */
-    .photo-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
-      gap: 6px;
-      margin-top: 6px;
-    }
-    .photo-thumb {
-      position: relative;
-      width: 100%;
-      padding-top: 100%;
-      border-radius: 6px;
-      overflow: hidden;
-      border: 1px solid var(--card-border);
-    }
-    .photo-thumb img {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
-    }
-
-    /* Formulario con select y inputs estilizados */
-    .form-group {
-      margin-bottom: 6px;
-      padding: 4px 6px;
-      border-radius: 4px;
-      transition: background 0.3s ease;
-    }
-    .form-group.updated {
-      background: #1e3a5f;
-      border-left: 3px solid var(--accent);
-    }
-    label {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 2px;
-    }
-    input[type="text"], select {
-      width: 100%;
-      padding: 8px;
-      background: var(--input-bg);
-      color: var(--text-main);
-      border: 1px solid var(--card-border);
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 13px;
-      font-family: inherit;
-    }
-    input[type="text"]:focus, select:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-    .status {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 4px;
+    select:focus, input:focus, textarea:focus {
+      outline: none !important;
+      border-color: var(--accent-cyan) !important;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) !important;
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    
-    <!-- 1. ENTRADA Y DICTADO -->
-    <div class="panel">
-      <h2>Inspección de Red MT (TECSUR/LDS)</h2>
-      
-      <div class="input-box-container">
-        <textarea id="dictadoInput" placeholder="Toca aquí y usa el micrófono del teclado. Se procesa a los 10s de pausa o con el botón..."></textarea>
-        
-        <div class="timer-bar-container">
-          <span>Auto-procesamiento:</span>
-          <span id="countdownBadge" class="timer-badge">Inactivo</span>
-        </div>
+<body class="p-3 max-w-xl mx-auto pb-32">
 
-        <div class="btn-grid">
-          <button id="btnProcesar" class="btn-process">
-            <span>⚡</span> Clasificar Texto
-          </button>
-          <button id="btnPhoto" class="btn-cam">
-            <span>📷</span> Foto
-          </button>
+  <!-- ENCABEZADO Y TIPO DE INSPECCIÓN -->
+  <header class="mb-4">
+    <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-3">
+      <h1 class="text-lg font-black tracking-wide text-sky-400 flex items-center gap-2">
+        <span>⚡</span> REDES MT (DISTRIBUCIÓN)
+      </h1>
+      <button id="btn-config" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded-md text-slate-300">
+        ⚙️ Pesos NLU
+      </button>
+    </div>
+
+    <!-- SELECTOR DE LAS 3 MODALIDADES PRINCIPALES -->
+    <div class="panel-box p-3">
+      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+        Tipo de Inspección Operativa:
+      </label>
+      <select id="sel-tipo-inspeccion" class="w-full p-2.5 rounded-lg text-sm font-semibold text-sky-300 border">
+        <option value="VISUAL" selected>1. INSP. VISUAL (Matriz de Cuadrilla)</option>
+        <option value="TERMOGRAFICA">2. INSP. TERMOGRÁFICA (Puntos Calientes / Delta T)</option>
+        <option value="PARAMETROS_ELECTRICOS">3. INSP. PARÁMETROS ELÉCTRICOS (V, I, Cos φ, PAT)</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- PANEL DE CALIBRACIÓN DE PESOS NLU (MODAL OCULTO) -->
+  <div id="modal-pesos" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="panel-box p-5 w-full max-w-md border-sky-500/50 shadow-2xl">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-sm font-bold text-sky-400">Ajuste de Pesos y Umbrales NLU</h3>
+        <button id="btn-cerrar-pesos" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+      <div class="space-y-4 text-xs">
+        <div>
+          <div class="flex justify-between mb-1">
+            <span>Peso Sintáctico (W_sint):</span>
+            <span id="lbl-wsint" class="font-mono text-sky-400">0.70</span>
+          </div>
+          <input type="range" id="rng-wsint" min="0" max="1" step="0.05" value="0.70" class="w-full accent-sky-400">
+        </div>
+        <div>
+          <div class="flex justify-between mb-1">
+            <span>Peso Semántico (W_sem):</span>
+            <span id="lbl-wsem" class="font-mono text-emerald-400">0.30</span>
+          </div>
+          <input type="range" id="rng-wsem" min="0" max="1" step="0.05" value="0.30" class="w-full accent-emerald-400">
+        </div>
+        <div>
+          <div class="flex justify-between mb-1">
+            <span>Umbral Mínimo de Aceptación (Threshold):</span>
+            <span id="lbl-th" class="font-mono text-amber-400">0.65</span>
+          </div>
+          <input type="range" id="rng-th" min="0.4" max="0.9" step="0.05" value="0.65" class="w-full accent-amber-400">
         </div>
       </div>
+      <button id="btn-guardar-pesos" class="mt-4 w-full bg-sky-600 hover:bg-sky-500 py-2 rounded-lg text-xs font-bold text-white transition">
+        Confirmar Calibración
+      </button>
+    </div>
+  </div>
 
-      <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+  <!-- CONTENEDOR 1: MODO INSP. VISUAL (ESQUEMA COMPLETO DE LIBRETA) -->
+  <main id="seccion-visual" class="space-y-4">
+    
+    <!-- BARRA DE ENTRADA POR VOZ Y ACCIONES RÁPIDAS -->
+    <section class="panel-box p-3">
+      <div class="flex justify-between items-center mb-1">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          Entrada por Voz / Dictado Técnico:
+        </label>
+        <span id="status-audio" class="text-[10px] text-emerald-400 font-mono">Audio Buffer: Listo</span>
+      </div>
+      <textarea id="txt-dictado" rows="2" placeholder="Dicta con el teclado iOS/Android: 'Poste concreto 13m con base fisurada, seccionador cut out con descarga, DMS incumple predio distancia 1.8 metros con manga'..." class="w-full p-2 text-xs rounded-lg"></textarea>
+      
+      <div class="grid grid-cols-2 gap-2 mt-2">
+        <button id="btn-procesar-dual" class="bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow">
+          <span>⚡</span> Clasificar Oración
+        </button>
+        <button id="btn-camara" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 shadow">
+          <span>📷</span> Foto de Clase
+        </button>
+      </div>
+      <input type="file" id="input-camara" accept="image/*" capture="environment" class="hidden">
+    </section>
 
-      <!-- Monitor en vivo -->
-      <div class="rt-monitor">
-        <div class="rt-title">En tiempo real (Última clasificación)</div>
-        <div id="rtTagsContainer" class="rt-tags-container">
-          <div class="rt-item">
-            <span class="badge-field">esperando_ingreso</span>
-            <span class="badge-arrow">➔</span>
-            <span class="badge-value">sin datos</span>
+    <!-- NAVEGADOR DE CLASES MAYORES -->
+    <section class="panel-box p-3">
+      <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+        Seleccionar Clase Mayor a Inspeccionar:
+      </label>
+      <select id="sel-clase-mayor" class="w-full p-2.5 rounded-lg text-xs font-bold text-amber-300 border">
+        <!-- Generado dinámicamente -->
+      </select>
+    </section>
+
+    <!-- DETALLE DINÁMICO DE LA CLASE MAYOR SELECCIONADA -->
+    <section id="card-clase-activa" class="panel-box p-4 border-l-4 border-l-sky-400">
+      
+      <!-- ENCABEZADO Y DIAGRAMA DE REFERENCIA -->
+      <div class="flex flex-col sm:flex-row items-center gap-3 pb-3 border-b border-slate-700/80 mb-3">
+        <div id="contenedor-grafico-ref" class="w-24 h-24 bg-slate-950/80 rounded-lg p-2 border border-slate-700 flex items-center justify-center shrink-0">
+          <!-- SVG representativo según la clase -->
+        </div>
+        <div class="w-full text-center sm:text-left">
+          <span class="text-[10px] font-mono text-sky-400 uppercase tracking-widest">Activo Seleccionado</span>
+          <h2 id="titulo-clase-activa" class="text-base font-extrabold text-white">POSTE</h2>
+          <p id="desc-clase-activa" class="text-[11px] text-slate-400 mt-0.5">Estructura de soporte, fuste, empotramiento y rotulado técnico.</p>
+          <div class="flex items-center gap-2 mt-2 justify-center sm:justify-start">
+            <span id="badge-contador-fotos" class="text-[10px] bg-slate-800 text-emerald-300 px-2 py-0.5 rounded border border-emerald-700/50 font-mono">
+              📁 Fotos en esta clase: 0
+            </span>
           </div>
         </div>
       </div>
 
-      <div id="statusText" class="status">Listo para recibir datos.</div>
-
-      <!-- Galería -->
-      <h4 style="margin: 8px 0 2px 0; font-size: 11px; color: var(--text-muted);">
-        Fotos en sesión <span id="photoCounter">(0)</span>
-      </h4>
-      <div id="photoContainer" class="photo-grid"></div>
-    </div>
-
-    <!-- 2. BORRADOR INTERMEDIO Y EXPORTACIÓN CSV -->
-    <div class="panel">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0;">Borrador de Inspección Activa</h3>
-        <span id="filledCountBadge" style="font-size:11px; background:#1e3a5f; padding:2px 8px; border-radius:12px; font-weight:bold; color:var(--accent);">
-          0 campos llenados
-        </span>
+      <!-- LISTA DE SUBCLASES (CLASE ➔ VALOR) INICIALMENTE SIN VALORES -->
+      <div class="mb-3">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-xs font-bold text-sky-400 tracking-wider uppercase">Subclases y Variables de Inspección:</h3>
+          <span class="text-[10px] text-slate-500 italic">Formato: clase ➔ valor</span>
+        </div>
+        <div id="lista-subclases" class="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+          <!-- Subclases inyectadas por JS -->
+        </div>
       </div>
 
-      <div class="table-container">
-        <table id="summaryTable">
-          <thead>
-            <tr>
-              <th style="width: 45%;">Campo</th>
-              <th style="width: 55%;">Valor Registrado</th>
-            </tr>
-          </thead>
-          <tbody id="summaryTableBody">
-            <tr>
-              <td colspan="2" class="empty-table-msg">Ningún campo registrado todavía.</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- GALERÍA ESPECÍFICA DE LA CLASE MAYOR -->
+      <div class="border-t border-slate-800 pt-2">
+        <h4 class="text-[11px] font-bold text-slate-400 mb-1.5">Fotografías Asociadas a esta Carpeta:</h4>
+        <div id="galeria-clase-activa" class="grid grid-cols-4 gap-2 min-h-[50px] bg-slate-950/40 p-2 rounded-lg border border-slate-800/80">
+          <p class="text-[11px] text-slate-500 italic col-span-4 text-center py-2">Sin capturas para esta clase aún.</p>
+        </div>
       </div>
+    </section>
 
-      <button id="btnExportCsv" class="btn-csv">
-        <span>📥</span> Guardar Borrador (Descargar CSV)
+    <!-- RESUMEN GENERAL Y DESCARGA EN ZIP CON CARPETAS -->
+    <section class="panel-box p-3 space-y-2">
+      <div class="flex justify-between items-center text-xs">
+        <span class="text-slate-400">Total variables inspeccionadas:</span>
+        <span id="lbl-total-registrados" class="font-mono font-bold text-emerald-400">0 llenadas</span>
+      </div>
+      <button id="btn-descargar-zip" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sky-300 font-bold py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition">
+        <span>📦</span> Exportar Estructura y Fotos en Carpetas (.ZIP)
       </button>
+    </section>
+
+  </main>
+
+  <!-- CONTENEDOR 2: INSP. TERMOGRÁFICA (EN ESPERA) -->
+  <main id="seccion-termografica" class="hidden panel-box p-6 text-center space-y-3">
+    <div class="text-4xl text-amber-400">🌡️</div>
+    <h2 class="text-base font-bold text-white">Inspección Termográfica</h2>
+    <p class="text-xs text-slate-400 max-w-sm mx-auto">
+      Módulo para registro de temperatura ambiente, emisividad, cámara infrarroja, delta de temperatura (ΔT) y severidad térmica según norma técnica.
+    </p>
+    <div class="inline-block bg-slate-800 text-amber-300 text-xs px-3 py-1 rounded-full border border-amber-500/30">
+      Disponible al cambiar selector de modo
     </div>
+  </main>
 
-    <!-- 3. CATÁLOGO CONSOLIDADO 100% ESTANDARIZADO (32 CAMPOS) -->
-    <div class="panel">
-      <h3 style="margin-top:0;">Catálogo de Inspección Consolidado</h3>
-      <div id="dynamicForm"></div>
+  <!-- CONTENEDOR 3: INSP. PARÁMETROS ELÉCTRICOS (EN ESPERA) -->
+  <main id="seccion-electricos" class="hidden panel-box p-6 text-center space-y-3">
+    <div class="text-4xl text-sky-400">📊</div>
+    <h2 class="text-base font-bold text-white">Parámetros Eléctricos</h2>
+    <p class="text-xs text-slate-400 max-w-sm mx-auto">
+      Módulo de medición de tensión de línea y fase (kV), corrientes de carga (A), balance de fases, factor de potencia (cos φ) y resistencia óhmica de puesta a tierra (Ω).
+    </p>
+    <div class="inline-block bg-slate-800 text-sky-300 text-xs px-3 py-1 rounded-full border border-sky-500/30">
+      Disponible al cambiar selector de modo
     </div>
+  </main>
 
-  </div>
-
+  <!-- SCRIPT CON EL CATÁLOGO COMPLETO, ESQUEMA Y NAVEGACIÓN -->
   <script>
-    // Catálogo 100% formalizado con sus opciones técnicas exactas
-    const SCHEMA_CATALOG = {
-      "1. Identificación y Control Operativo": {
-        "cod_activo_principal": { type: "text", label: "CÓD. ACTIVO PRINCIPAL (POSTE / ESTRUCTURA)" },
-        "sst": { type: "text", label: "SST (CÓD. ORDEN TRABAJO / SERVICIO)" },
-        "nro_alimentador": { 
-          type: "select", 
-          label: "N° ALIMENTADOR", 
-          options: ["1", "2", "3", "4", "5", "6", "21"] 
-        },
-        "tipo_activo_principal": { 
-          type: "select", 
-          label: "TIPO ACTIVO PRINCIPAL", 
-          options: ["POSTE MT", "POSTE BT", "SECCIONADOR CUT OUT (PDF)", "PDS", "SED"] 
-        }
+    // 1. ÁRBOL EXACTO DE TU LIBRETA TÉCNICA (17 CLASES MAYORES)
+    const ESQUEMA_LIBRETA = {
+      "Poste": {
+        descripcion: "Soporte físico, fuste, empotramiento, inclinación y rotulado",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="50" y1="95" x2="50" y2="15"/><line x1="30" y1="25" x2="70" y2="25"/><line x1="40" y1="95" x2="60" y2="95"/><circle cx="50" cy="15" r="4" class="fill-sky-400"/></svg>`,
+        subclases: [
+          "Estado Rotulado", "Estado Etiquetado", "Código", "Marca", 
+          "Material", "Altura", "Estado Cimentación", "Propietario", 
+          "Estado Inclinación", "Estado Base", "Estado Cuerpo"
+        ]
       },
-      "2. Estructura y Fuste": {
-        "tipo_poste": { 
-          type: "select", 
-          label: "TIPO DE POSTE", 
-          options: ["CONCRETO", "MADERA", "METAL", "PRFV"] 
-        },
-        "altura_poste": { 
-          type: "select", 
-          label: "ALTURA DEL POSTE (m)", 
-          options: ["8", "9", "11", "12", "13", "14", "15"] 
-        },
-        "estado_inclinacion": { 
-          type: "select", 
-          label: "ESTADO DE INCLINACIÓN", 
-          options: ["NO PRESENTA", "MENOR A 5°", "MAYOR A 5°"] 
-        },
-        "corrosion_base": { 
-          type: "select", 
-          label: "CORROSIÓN / ESTADO BASE", 
-          options: ["CONFORME", "RAJADURAS LEVES", "CONCRETO DESPRENDIDO / PÉRDIDA DE SECCIÓN", "MAL ESTADO CRÍTICO"] 
-        },
-        "estado_fuste_cuerpo": { 
-          type: "select", 
-          label: "ESTADO DEL FUSTE / CUERPO", 
-          options: ["BUEN ESTADO", "RAJADURAS / FISURAS", "APOLILLADO", "ALTA DEGRADACIÓN"] 
-        },
-        "proteccion_impacto_poste": { 
-          type: "select", 
-          label: "PROTECCIÓN IMPACTO VEHICULAR", 
-          options: ["NO NECESITA", "CONFORME", "FALTANTE", "DAÑADO / IMPACTADO"] 
-        }
+      "Red MT aérea": {
+        descripcion: "Conductor aéreo de media tensión, vano, cruce y calibre",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><path d="M10,40 Q50,75 90,40"/><path d="M10,25 Q50,60 90,25"/><line x1="10" y1="20" x2="10" y2="80"/><line x1="90" y1="20" x2="90" y2="80"/></svg>`,
+        subclases: [
+          "Sección", "Material", "Tipo (Desnudo/Aislado)", 
+          "Estado Conductor/Cable", "Mangas", "Cruce de Vía"
+        ]
       },
-      "3. Armado, Aislamiento y Herrajes": {
-        "tipo_mensula": { 
-          type: "select", 
-          label: "TIPO MÉNSULA / CRUCETA", 
-          options: ["CONCRETO", "MADERA", "NO TIENE"] 
-        },
-        "estado_cruceta": { 
-          type: "select", 
-          label: "ESTADO CRUCETA / MÉNSULA", 
-          options: ["BUEN ESTADO", "RAJADA / DESPRENDIMIENTO", "APOLILLADA", "REVIRADA"] 
-        },
-        "estado_aisladores": { 
-          type: "select", 
-          label: "ESTADO AISLADORES", 
-          options: ["CONFORME", "POLUCIÓN SEVERA", "DESCARGA / TRACKING", "DAÑADO / REQUIERE CAMBIO"] 
-        },
-        "estado_grapas_conectores": { 
-          type: "select", 
-          label: "GRAPAS Y CONECTORES", 
-          options: ["SIN CORROSIÓN", "CORROSIÓN MEDIA", "CORROSIÓN ALTA / DAÑADO"] 
-        },
-        "ferreteria_armado": { 
-          type: "select", 
-          label: "FERRETERÍA / HERRAJES DEL ARMADO", 
-          options: ["CONFORME", "CORROSIÓN ALTA", "PERNOS / RIENDAS FLOJAS"] 
-        }
+      "Red MT subterránea": {
+        descripcion: "Derivaciones subterráneas, transición aéreo-subterráneo",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="35" y="20" width="30" height="60" rx="5"/><line x1="50" y1="10" x2="50" y2="90"/><path d="M25,85 L75,85"/></svg>`,
+        subclases: [
+          "Sección", "Material", "Tipo", "Estado", 
+          "Terminales", "Subida/Bajada"
+        ]
       },
-      "4. Maniobra, Protección y Enlace Subterráneo": {
-        "estado_seccionador": { 
-          type: "select", 
-          label: "SECCIONADOR / CUT OUT", 
-          options: ["NO TIENE", "CONFORME", "CORROSIÓN ALTA", "CARBONIZADO / DESCARGA", "PORTAFUSIBLE DESCOLGADO"] 
-        },
-        "estado_terminales": { 
-          type: "select", 
-          label: "TERMINALES MT", 
-          options: ["NO TIENE", "CONFORME", "AGRIETADO / CUARTEADO", "SOPORTE DEFICIENTE"] 
-        },
-        "ducto_bajada_cable": { 
-          type: "select", 
-          label: "PROTECCIÓN BAJADA DE CABLE / DUCTO", 
-          options: ["NO TIENE", "SIN DAÑO", "DESCOLGADO", "DAÑADO / ROTO"] 
-        }
+      "Rieles / Protección Impacto": {
+        descripcion: "Guardavías, defensas vehiculares y deflector de choques",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="20" y="45" width="60" height="20" rx="3"/><line x1="30" y1="65" x2="30" y2="85"/><line x1="70" y1="65" x2="70" y2="85"/></svg>`,
+        subclases: ["Estado Riel (Corrosión / Impacto)", "Tipo de Suelo", "Requiere Riel"]
       },
-      "5. Puesta a Tierra y Retenida": {
-        "conexion_tierra_mt": { 
-          type: "select", 
-          label: "CONEXIÓN A TIERRA MT (PAT)", 
-          options: ["CONFORME", "EXTERNA INCOMPLETA / CORTADA", "INTERNA INCOMPLETA", "NO TIENE"] 
-        },
-        "estado_pozo_mt": { 
-          type: "select", 
-          label: "POZO A TIERRA MT", 
-          options: ["VISIBLE-BUEN ESTADO", "NO VISIBLE", "TAPA ROTA / DETERIORADO"] 
-        },
-        "estado_retenida": { 
-          type: "select", 
-          label: "ESTADO RETENIDA / TIRANTE", 
-          options: ["CONFORME", "DESTEMPLADA / SUELTA", "REQUIERE MANTENIMIENTO", "REQUIERE CAMBIO / CORROSIÓN", "NO REQUIERE"] 
-        }
+      "Conectores / Empalmes": {
+        descripcion: "Puentes de conexión, prensas de derivación y manguitos",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><circle cx="40" cy="50" r="12"/><circle cx="60" cy="50" r="12"/><line x1="15" y1="50" x2="28" y2="50"/><line x1="72" y1="50" x2="85" y2="50"/></svg>`,
+        subclases: ["Estado Corrosión", "Conductor 1", "Conductor 2"]
       },
-      "6. Transformación / SED": {
-        "perdida_aceite": { 
-          type: "select", 
-          label: "PÉRDIDA DE ACEITE (SED)", 
-          options: ["NO", "PÉRDIDA DE ACEITE / CONTAMINACIÓN"] 
-        },
-        "corrosion_cuba_equipo": { 
-          type: "select", 
-          label: "CORROSIÓN CUBA DEL TRANSFORMADOR", 
-          options: ["NO APLICA", "BUEN ESTADO", "CORROSIÓN MEDIA", "CORROSIÓN ALTA"] 
-        },
-        "anclaje_plataforma": { 
-          type: "select", 
-          label: "ANCLAJE Y PLATAFORMA SED", 
-          options: ["NO APLICA", "CONFORME", "SOPORTE DEFICIENTE / FISURADO"] 
-        }
+      "Grapas": {
+        descripcion: "Herrajes de suspensión, amarre y retención de fases",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><path d="M30,30 L70,30 L60,70 L40,70 Z"/><circle cx="50" cy="50" r="6" class="fill-sky-400"/></svg>`,
+        subclases: ["Estado Corrosión"]
       },
-      "7. Entorno, Riesgos DMS y Vano": {
-        "tipo_conductor_mt": { 
-          type: "select", 
-          label: "TIPO Y CALIBRE DE CONDUCTOR MT", 
-          options: [
-            "ALUMINIO AAAC 35 mm²", "ALUMINIO AAAC 50 mm²", "ALUMINIO AAAC 70 mm²", 
-            "ALUMINIO AAAC 95 mm²", "ALUMINIO AAAC 120 mm²", "ALUMINIO AAAC 150 mm²", 
-            "ALUMINIO AAAC 185 mm²", "ALUMINIO AAAC 240 mm²", "COBRE CU 35 mm²", 
-            "COBRE CU 50 mm²", "COBRE CU 70 mm²", "COBRE CU 120 mm²", 
-            "N2XSY 35 mm²", "N2XSY 50 mm²", "N2XSY 70 mm²", "N2XSY 120 mm²", 
-            "N2XSY 185 mm²", "N2XSY 240 mm²", "DESNUDO GENERAL", "AISLADO GENERAL", "MIXTO"
-          ] 
-        },
-        "acercamiento_arboles": { 
-          type: "select", 
-          label: "ACERCAMIENTO DE ÁRBOLES / RAMAS", 
-          options: ["SIN PRESENCIA", "RAMAS CERCA", "RAMAS EN CONTACTO"] 
-        },
-        "riesgo_dms": { 
-          type: "select", 
-          label: "DISTANCIAS MÍNIMAS DE SEGURIDAD (DMS)", 
-          options: ["SIN RIESGO", "RIESGO A EDIFICACIÓN", "RIESGO A TELECOM / BT", "RIESGO A CARTEL / GRIFO"] 
-        },
-        "uso_compartido_redes": { 
-          type: "select", 
-          label: "USO COMPARTIDO DE LA ESTRUCTURA", 
-          options: ["NO", "PASTORAL BT", "CABLES TELECOM", "REDES MIXTAS"] 
-        },
-        "accesibilidad_grua": { 
-          type: "select", 
-          label: "ACCESIBILIDAD PARA GRÚA / CANASTILLA", 
-          options: ["ACCESIBLE", "INACCESIBLE-PRIVADA", "INACCESIBLE-FALTA ESPACIO"] 
-        }
+      "Aisladores": {
+        descripcion: "Poliméricos o porcelana, campanas, polución y tracking",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="50" y1="15" x2="50" y2="85"/><rect x="30" y="30" width="40" height="10" rx="3"/><rect x="33" y="45" width="34" height="10" rx="3"/><rect x="36" y="60" width="28" height="10" rx="3"/></svg>`,
+        subclases: ["Material", "Contaminación", "Descarga", "Requiere Cambio"]
       },
-      "8. Administración y Cierre": {
-        "empresa": { 
-          type: "select", 
-          label: "EMPRESA INSPECTORA / PROPIETARIA", 
-          options: ["TECSUR", "LDS-LUZ DEL SUR"] 
-        },
-        "rotulado_etiquetado": { 
-          type: "select", 
-          label: "ROTULADO / ETIQUETADO DEL ACTIVO", 
-          options: ["CONFORME", "BORROSO / NO CONFORME", "NO TIENE"] 
-        },
-        "observaciones": { type: "text", label: "OBSERVACIONES GENERALES" }
+      "Ménsulas": {
+        descripcion: "Soportes en voladizo, concreto o metálicas",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="25" y1="20" x2="25" y2="80"/><line x1="25" y1="35" x2="80" y2="35"/><line x1="25" y1="65" x2="70" y2="35"/></svg>`,
+        subclases: ["Material", "Estado", "Diagonales"]
+      },
+      "Plataforma": {
+        descripcion: "Estructura portante para transformadores o maniobra",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="15" y="45" width="70" height="12"/><line x1="30" y1="57" x2="30" y2="85"/><line x1="70" y1="57" x2="70" y2="85"/></svg>`,
+        subclases: ["Material (Concreto / Madera / Polimérica)", "Estado"]
+      },
+      "Palomilla": {
+        descripcion: "Herrajes auxiliares de soporte y alineamiento",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="20" y1="50" x2="80" y2="50"/><path d="M40,50 L50,30 L60,50 Z"/></svg>`,
+        subclases: ["Material", "Estado"]
+      },
+      "Seccionadores / Cut Out": {
+        descripcion: "Cortacircuitos fusibles, portafusibles y mecanismos de corte",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="20" y1="50" x2="40" y2="50"/><line x1="40" y1="50" x2="70" y2="25"/><circle cx="40" cy="50" r="3"/><circle cx="75" cy="50" r="3"/><line x1="75" y1="50" x2="85" y2="50"/></svg>`,
+        subclases: ["Contaminación", "Descarga / Estado", "Corrosión"]
+      },
+      "Equipo - Transformador": {
+        descripcion: "Transformador aéreo, cuba, fugas dieléctricas y bushings",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="25" y="30" width="50" height="45" rx="4"/><line x1="35" y1="20" x2="35" y2="30"/><line x1="50" y1="15" x2="50" y2="30"/><line x1="65" y1="20" x2="65" y2="30"/></svg>`,
+        subclases: ["Corrosión", "Aceite", "Objetos Cercanos"]
+      },
+      "Tableros": {
+        descripcion: "Cajas de distribución BT, control o alumbrado público",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="25" y="20" width="50" height="60" rx="4"/><line x1="45" y1="20" x2="45" y2="80"/><circle cx="40" cy="50" r="2"/></svg>`,
+        subclases: ["Tamaño", "Corrosión", "Ferretería", "Estado General"]
+      },
+      "Puesta a tierra / PAT": {
+        descripcion: "Bajante de cobre, electrodo, rotulado y estado físico",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="50" y1="20" x2="50" y2="55"/><line x1="25" y1="55" x2="75" y2="55"/><line x1="35" y1="65" x2="65" y2="65"/><line x1="45" y1="75" x2="55" y2="75"/></svg>`,
+        subclases: ["Conexión", "Rotulado", "Estado Pozo a Tierra", "¿Robado?"]
+      },
+      "Retenida": {
+        descripcion: "Tirante de acero, aislador tipo nuez y canaleta",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><line x1="20" y1="85" x2="80" y2="15"/><circle cx="50" cy="50" r="6" class="fill-sky-400"/></svg>`,
+        subclases: ["Tipo", "Aislador de Retenida", "Corrosión", "Canaleta"]
+      },
+      "DMS": {
+        descripcion: "Distancias mínimas de seguridad normativas (CNE / Osinergmin)",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-amber-400 fill-none stroke-[3]"><rect x="15" y="45" width="25" height="40"/><path d="M75,20 L75,85"/><line x1="40" y1="35" x2="75" y2="35" stroke-dasharray="4,4"/><path d="M40,35 L45,30 M40,35 L45,40"/></svg>`,
+        subclases: ["Incumple / Presenta", "Qué Concepto", "Distancia", "Manga"]
+      },
+      "Observaciones": {
+        descripcion: "Comentarios libres, hallazgos atípicos y notas de campo",
+        icono: `<svg viewBox="0 0 100 100" class="w-16 h-16 stroke-sky-400 fill-none stroke-[3]"><rect x="25" y="20" width="50" height="60" rx="4"/><line x1="35" y1="35" x2="65" y2="35"/><line x1="35" y1="50" x2="65" y2="50"/><line x1="35" y1="65" x2="55" y2="65"/></svg>`,
+        subclases: ["Observaciones / Comentarios"]
       }
     };
 
-    // Renderizar dinámicamente con SELECTs e INPUTs
-    const dynamicForm = document.getElementById("dynamicForm");
-    Object.entries(SCHEMA_CATALOG).forEach(([seccion, campos]) => {
-      const secHeader = document.createElement("div");
-      secHeader.className = "section-title";
-      secHeader.innerText = seccion;
-      dynamicForm.appendChild(secHeader);
+    // 2. ESTADO EN MEMORIA VIRTUAL DE INSPECCIÓN Y FOTOGRAFÍAS
+    const registrosInspeccion = {};
+    const carpetasFotograficas = {};
 
-      Object.entries(campos).forEach(([idCampo, cfg]) => {
-        const fGroup = document.createElement("div");
-        fGroup.className = "form-group";
-        
-        let controlHtml = "";
-        if (cfg.type === "select") {
-          const opts = cfg.options.map(o => `<option value="${o}">${o}</option>`).join("");
-          controlHtml = `
-            <select id="${idCampo}">
-              <option value="" selected disabled>Seleccionar...</option>
-              ${opts}
-            </select>
-          `;
-        } else {
-          controlHtml = `<input type="text" id="${idCampo}" placeholder="Sin registrar">`;
-        }
-
-        fGroup.innerHTML = `
-          <label>${cfg.label}</label>
-          ${controlHtml}
-        `;
-        dynamicForm.appendChild(fGroup);
+    // Inicializar registros vacíos (clase ➔ [Sin registrar])
+    Object.entries(ESQUEMA_LIBRETA).forEach(([clase, cfg]) => {
+      registrosInspeccion[clase] = {};
+      carpetasFotograficas[clase] = [];
+      cfg.subclases.forEach(sub => {
+        registrosInspeccion[clase][sub] = ""; // Sin registrar inicialmente
       });
     });
 
-    const dictadoInput = document.getElementById("dictadoInput");
-    const btnProcesar = document.getElementById("btnProcesar");
-    const btnPhoto = document.getElementById("btnPhoto");
-    const cameraInput = document.getElementById("cameraInput");
-    const photoContainer = document.getElementById("photoContainer");
-    const photoCounter = document.getElementById("photoCounter");
-    const statusText = document.getElementById("statusText");
-    const rtTagsContainer = document.getElementById("rtTagsContainer");
-    const countdownBadge = document.getElementById("countdownBadge");
+    let claseMayorActiva = "Poste";
 
-    const summaryTableBody = document.getElementById("summaryTableBody");
-    const filledCountBadge = document.getElementById("filledCountBadge");
-    const btnExportCsv = document.getElementById("btnExportCsv");
+    // 3. RENDERIZADO DEL SELECTOR DE CLASES MAYORES
+    const selClaseMayor = document.getElementById("sel-clase-mayor");
+    Object.keys(ESQUEMA_LIBRETA).forEach(clase => {
+      const opt = document.createElement("option");
+      opt.value = clase;
+      opt.innerText = clase;
+      selClaseMayor.appendChild(opt);
+    });
 
-    let photos = [];
+    // 4. ACTUALIZAR PANEL DE LA CLASE MAYOR SELECCIONADA
+    function renderClaseActiva(nombreClase) {
+      claseMayorActiva = nombreClase;
+      const cfg = ESQUEMA_LIBRETA[nombreClase];
 
-    // Refrescar tabla resumen
-    function refreshSummaryTable() {
-      const controls = dynamicForm.querySelectorAll("input[type='text'], select");
-      let filledRows = [];
+      document.getElementById("titulo-clase-activa").innerText = nombreClase.toUpperCase();
+      document.getElementById("desc-clase-activa").innerText = cfg.descripcion;
+      document.getElementById("contenedor-grafico-ref").innerHTML = cfg.icono;
 
-      controls.forEach(ctrl => {
-        const val = ctrl.value.trim();
-        if (val !== "") {
-          filledRows.push({ campo: ctrl.id, valor: val });
-        }
-      });
+      // Render de Subclases con formato: clase ➔ valor
+      const contSub = document.getElementById("lista-subclases");
+      contSub.innerHTML = "";
 
-      filledCountBadge.innerText = `${filledRows.length} campos llenados`;
-
-      if (filledRows.length === 0) {
-        summaryTableBody.innerHTML = `<tr><td colspan="2" class="empty-table-msg">Ningún campo registrado todavía.</td></tr>`;
-        return;
-      }
-
-      summaryTableBody.innerHTML = "";
-      filledRows.forEach(item => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="td-field">${item.campo}</td>
-          <td class="td-val">${item.valor}</td>
-        `;
-        summaryTableBody.appendChild(tr);
-      });
-    }
-
-    // Inyectar valor en input o select con animación visual
-    function setField(fieldName, val) {
-      const el = document.getElementById(fieldName);
-      if (el) {
-        el.value = val;
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        const parent = el.closest(".form-group");
-        parent.classList.add("updated");
-        setTimeout(() => parent.classList.remove("updated"), 2500);
-      }
-    }
-
-    // MOTOR DE INFERENCIA SEMÁNTICA CON JERGAS TÉCNICAS Y REGLAS COMPLETAS
-    function procesarTexto(texto) {
-      const t = texto.toLowerCase();
-      const updates = [];
-
-      // 1. CONDUCTOR MT (Material + Calibre + Jerga técnica)
-      const tieneAluminio = t.includes("aluminio") || t.includes("aaac") || t.includes("aleacion");
-      const tieneCobre = t.includes("cobre") || t.includes("cu");
-      const tieneN2xsy = t.includes("n2xsy") || t.includes("subterraneo") || t.includes("aislado");
-
-      // Buscar calibres típicos: 35, 50, 70, 95, 120, 150, 185, 240
-      const matchCalibre = t.match(/\b(35|50|70|95|120|150|185|240)\b/);
-      const calibre = matchCalibre ? matchCalibre[1] : null;
-
-      if (tieneN2xsy) {
-        updates.push({ campo: "tipo_conductor_mt", valor: calibre ? `N2XSY ${calibre} mm²` : "AISLADO GENERAL" });
-      } else if (tieneAluminio) {
-        updates.push({ campo: "tipo_conductor_mt", valor: calibre ? `ALUMINIO AAAC ${calibre} mm²` : "ALUMINIO AAAC 70 mm²" });
-      } else if (tieneCobre) {
-        updates.push({ campo: "tipo_conductor_mt", valor: calibre ? `COBRE CU ${calibre} mm²` : "COBRE CU 50 mm²" });
-      } else if (t.includes("desnudo")) {
-        updates.push({ campo: "tipo_conductor_mt", valor: "DESNUDO GENERAL" });
-      } else if (t.includes("mixto")) {
-        updates.push({ campo: "tipo_conductor_mt", valor: "MIXTO" });
-      }
-
-      // 2. TIPO DE POSTE Y MATERIAL
-      if (t.includes("concreto") || t.includes("cac") || t.includes("cemento")) {
-        updates.push({ campo: "tipo_poste", valor: "CONCRETO" });
-      } else if (t.includes("madera") && !t.includes("cruceta") && !t.includes("mensula")) {
-        updates.push({ campo: "tipo_poste", valor: "MADERA" });
-      } else if (t.includes("metalico") || t.includes("metal") || t.includes("fierro") || t.includes("acero")) {
-        updates.push({ campo: "tipo_poste", valor: "METAL" });
-      } else if (t.includes("fibra") || t.includes("prfv")) {
-        updates.push({ campo: "tipo_poste", valor: "PRFV" });
-      }
-
-      // 3. ALTURA DEL POSTE (ej. "poste de 13 metros", "11m", "altura 15")
-      const matchAltura = t.match(/(?:altura|alto|de)\s*(8|9|11|12|13|14|15)(?:\s*m|\s*metros)?/i);
-      if (matchAltura) {
-        updates.push({ campo: "altura_poste", valor: matchAltura[1] });
-      }
-
-      // 4. CÓDIGO DE ACTIVO / POSTE (ej. "poste P-1044", "estructura B-20")
-      const matchCodigo = t.match(/(?:poste|codigo|estructura)\s*([a-z0-9\-]+)/i);
-      const stopWords = ["de", "en", "el", "la", "con", "del", "concreto", "madera", "metal", "fibra", "cac", "inclinado", "nuevo"];
-      if (matchCodigo && !stopWords.includes(matchCodigo[1].toLowerCase())) {
-        updates.push({ campo: "cod_activo_principal", valor: matchCodigo[1].toUpperCase() });
-      }
-
-      // 5. SST (Orden de trabajo / servicio)
-      const matchSST = t.match(/(?:sst|orden de trabajo|orden|solicitud|servicio)\s*([a-z0-9\-]+)/i);
-      if (matchSST && !["de", "en", "el", "la", "con", "del"].includes(matchSST[1].toLowerCase())) {
-        updates.push({ campo: "sst", valor: matchSST[1].toUpperCase() });
-      }
-
-      // 6. ALIMENTADOR (ej. "alimentador 4", "circuito 21")
-      const matchAlim = t.match(/(?:alimentador|circuito)\s*([0-9]+)/i);
-      if (matchAlim && ["1", "2", "3", "4", "5", "6", "21"].includes(matchAlim[1])) {
-        updates.push({ campo: "nro_alimentador", valor: matchAlim[1] });
-      }
-
-      // 7. TIPO DE ACTIVO
-      if (t.includes("sed") || t.includes("subestacion") || t.includes("trafo aereo")) {
-        updates.push({ campo: "tipo_activo_principal", valor: "SED" });
-      } else if (t.includes("cut out") || t.includes("cutout") || t.includes("pdf") || t.includes("seccionador fusible")) {
-        updates.push({ campo: "tipo_activo_principal", valor: "SECCIONADOR CUT OUT (PDF)" });
-      } else if (t.includes("pds") || t.includes("cuchillas")) {
-        updates.push({ campo: "tipo_activo_principal", valor: "PDS" });
-      }
-
-      // 8. RETENIDA / TIRANTE (Jergas: barbotín, floja, destemplada, sin templador)
-      if (t.includes("retenida") || t.includes("tirante") || t.includes("barbotin") || t.includes("viento")) {
-        if (t.includes("suelta") || t.includes("destemplad") || t.includes("floja") || t.includes("sin tension")) {
-          updates.push({ campo: "estado_retenida", valor: "DESTEMPLADA / SUELTA" });
-        } else if (t.includes("mantenimiento") || t.includes("regular")) {
-          updates.push({ campo: "estado_retenida", valor: "REQUIERE MANTENIMIENTO" });
-        } else if (t.includes("cambio") || t.includes("rota") || t.includes("oxido") || t.includes("corrosion") || t.includes("guillotinad")) {
-          updates.push({ campo: "estado_retenida", valor: "REQUIERE CAMBIO / CORROSIÓN" });
-        } else if (t.includes("no requiere") || t.includes("no necesita")) {
-          updates.push({ campo: "estado_retenida", valor: "NO REQUIERE" });
-        } else {
-          updates.push({ campo: "estado_retenida", valor: "CONFORME" });
-        }
-      }
-
-      // 9. AISLADORES (Jergas: tracking, arqueo, chisporroteo, fogueado, picado)
-      if (t.includes("aislador") || t.includes("aisladores") || t.includes("polimerico") || t.includes("porcelana") || t.includes("pin")) {
-        if (t.includes("roto") || t.includes("quebrado") || t.includes("picado") || t.includes("dañado") || t.includes("cambio")) {
-          updates.push({ campo: "estado_aisladores", valor: "DAÑADO / REQUIERE CAMBIO" });
-        } else if (t.includes("tracking") || t.includes("carbonizado") || t.includes("arqueo") || t.includes("fogueado") || t.includes("chisporroteo")) {
-          updates.push({ campo: "estado_aisladores", valor: "DESCARGA / TRACKING" });
-        } else if (t.includes("polucion") || t.includes("salinidad") || t.includes("sucio") || t.includes("polvillo")) {
-          updates.push({ campo: "estado_aisladores", valor: "POLUCIÓN SEVERA" });
-        } else {
-          updates.push({ campo: "estado_aisladores", valor: "CONFORME" });
-        }
-      }
-
-      // 10. CRUCETA / MÉNSULA (Jergas: apolillada, astillada, desprendida, revirada)
-      if (t.includes("cruceta") || t.includes("mensula") || t.includes("pastoral mt")) {
-        if (t.includes("madera")) updates.push({ campo: "tipo_mensula", valor: "MADERA" });
-        if (t.includes("concreto")) updates.push({ campo: "tipo_mensula", valor: "CONCRETO" });
-
-        if (t.includes("rajad") || t.includes("desprendimiento") || t.includes("cascoteada") || t.includes("astillad")) {
-          updates.push({ campo: "estado_cruceta", valor: "RAJADA / DESPRENDIMIENTO" });
-        } else if (t.includes("apolillada") || t.includes("podrida")) {
-          updates.push({ campo: "estado_cruceta", valor: "APOLILLADA" });
-        } else if (t.includes("revirada") || t.includes("chueca") || t.includes("torcida")) {
-          updates.push({ campo: "estado_cruceta", valor: "REVIRADA" });
-        } else {
-          updates.push({ campo: "estado_cruceta", valor: "BUEN ESTADO" });
-        }
-      }
-
-      // 11. GRAPAS Y CONECTORES (Jergas: grapa de suspension, de anclaje, perno u, terminal tipo pistola)
-      if (t.includes("grapa") || t.includes("conector") || t.includes("grapas") || t.includes("amarre")) {
-        if (t.includes("oxido") || t.includes("corrosion") || t.includes("sulfatad") || t.includes("dañad")) {
-          updates.push({ campo: "estado_grapas_conectores", valor: "CORROSIÓN ALTA / DAÑADO" });
-        } else {
-          updates.push({ campo: "estado_grapas_conectores", valor: "SIN CORROSIÓN" });
-        }
-      }
-
-      // 12. FERRETERÍA ESTRUCTURAL (Jergas: pernos de ojo, diagonales, platinas, abrazaderas, tuercas)
-      if (t.includes("ferreteria") || t.includes("perno") || t.includes("pernos") || t.includes("diagonal") || t.includes("rienda")) {
-        if (t.includes("flojo") || t.includes("suelto") || t.includes("falta tuerca")) {
-          updates.push({ campo: "ferreteria_armado", valor: "PERNOS / RIENDAS FLOJAS" });
-        } else if (t.includes("oxido") || t.includes("corrosion") || t.includes("herrumbre")) {
-          updates.push({ campo: "ferreteria_armado", valor: "CORROSIÓN ALTA" });
-        } else {
-          updates.push({ campo: "ferreteria_armado", valor: "CONFORME" });
-        }
-      }
-
-      // 13. SECCIONADOR / CUT OUT (Jergas: caña caída, portafusible descolgado, fusible quemado)
-      if (t.includes("seccionador") || t.includes("cut out") || t.includes("cutout") || t.includes("fusible mt")) {
-        if (t.includes("descolgado") || t.includes("abierto") || t.includes("caña caida") || t.includes("disparado")) {
-          updates.push({ campo: "estado_seccionador", valor: "PORTAFUSIBLE DESCOLGADO" });
-        } else if (t.includes("quemado") || t.includes("descarga") || t.includes("fogueado")) {
-          updates.push({ campo: "estado_seccionador", valor: "CARBONIZADO / DESCARGA" });
-        } else if (t.includes("oxido") || t.includes("corrosion")) {
-          updates.push({ campo: "estado_seccionador", valor: "CORROSIÓN ALTA" });
-        } else if (t.includes("no tiene")) {
-          updates.push({ campo: "estado_seccionador", valor: "NO TIENE" });
-        } else {
-          updates.push({ campo: "estado_seccionador", valor: "CONFORME" });
-        }
-      }
-
-      // 14. TERMINALES MT (Jergas: mufas, terminal contraíble, apantallamiento)
-      if (t.includes("terminal") || t.includes("mufa") || t.includes("bota terminal")) {
-        if (t.includes("cuarteado") || t.includes("rajado") || t.includes("agrietado")) {
-          updates.push({ campo: "estado_terminales", valor: "AGRIETADO / CUARTEADO" });
-        } else if (t.includes("suelto") || t.includes("sin soporte") || t.includes("descolgado")) {
-          updates.push({ campo: "estado_terminales", valor: "SOPORTE DEFICIENTE" });
-        } else {
-          updates.push({ campo: "estado_terminales", valor: "CONFORME" });
-        }
-      }
-
-      // 15. DUCTO / BAJADA DE CABLE (Jergas: bajante, tubo pvc, ducto galvanizado)
-      if (t.includes("bajada") || t.includes("ducto") || t.includes("tubo pvc") || t.includes("canaleta bajada")) {
-        if (t.includes("descolgado") || t.includes("suelto")) {
-          updates.push({ campo: "ducto_bajada_cable", valor: "DESCOLGADO" });
-        } else if (t.includes("roto") || t.includes("dañado") || t.includes("quebrado")) {
-          updates.push({ campo: "ducto_bajada_cable", valor: "DAÑADO / ROTO" });
-        } else {
-          updates.push({ campo: "ducto_bajada_cable", valor: "SIN DAÑO" });
-        }
-      }
-
-      // 16. PUESTA A TIERRA (PAT) Y POZO (Jergas: chicote de tierra, bajante pat, pozo a tierra)
-      if (t.includes("tierra") || t.includes("pat") || t.includes("chicote")) {
-        if (t.includes("cortado") || t.includes("incompleto") || t.includes("robado") || t.includes("guillotinado")) {
-          updates.push({ campo: "conexion_tierra_mt", valor: "EXTERNA INCOMPLETA / CORTADA" });
-        } else if (t.includes("no tiene")) {
-          updates.push({ campo: "conexion_tierra_mt", valor: "NO TIENE" });
-        } else {
-          updates.push({ campo: "conexion_tierra_mt", valor: "CONFORME" });
-        }
-      }
-      if (t.includes("pozo")) {
-        if (t.includes("tapa rota") || t.includes("destapado") || t.includes("sin tapa")) {
-          updates.push({ campo: "estado_pozo_mt", valor: "TAPA ROTA / DETERIORADO" });
-        } else if (t.includes("no visible") || t.includes("tapado") || t.includes("enterrado")) {
-          updates.push({ campo: "estado_pozo_mt", valor: "NO VISIBLE" });
-        } else {
-          updates.push({ campo: "estado_pozo_mt", valor: "VISIBLE-BUEN ESTADO" });
-        }
-      }
-
-      // 17. BASE, FUSTE E INCLINACIÓN (Jergas: desplomado, patas de gallo, fierro expuesto)
-      if (t.includes("inclinado") || t.includes("desplomado") || t.includes("fuera de plomo")) {
-        if (t.includes("mayor a 5") || t.includes("muy desplomado")) {
-          updates.push({ campo: "estado_inclinacion", valor: "MAYOR A 5°" });
-        } else {
-          updates.push({ campo: "estado_inclinacion", valor: "MENOR A 5°" });
-        }
-      }
-      if (t.includes("base") || t.includes("collarin") || t.includes("zocalo")) {
-        if (t.includes("desprendimiento") || t.includes("perdida de seccion") || t.includes("fierro visto")) {
-          updates.push({ campo: "corrosion_base", valor: "CONCRETO DESPRENDIDO / PÉRDIDA DE SECCIÓN" });
-        } else if (t.includes("rajadura") || t.includes("fisura")) {
-          updates.push({ campo: "corrosion_base", valor: "RAJADURAS LEVES" });
-        } else if (t.includes("critico") || t.includes("colapso") || t.includes("urgente")) {
-          updates.push({ campo: "corrosion_base", valor: "MAL ESTADO CRÍTICO" });
-        } else {
-          updates.push({ campo: "corrosion_base", valor: "CONFORME" });
-        }
-      }
-      if (t.includes("fuste") || t.includes("cuerpo del poste")) {
-        if (t.includes("rajadura") || t.includes("grieta")) {
-          updates.push({ campo: "estado_fuste_cuerpo", valor: "RAJADURAS / FISURAS" });
-        } else {
-          updates.push({ campo: "estado_fuste_cuerpo", valor: "BUEN ESTADO" });
-        }
-      }
-
-      // 18. PROTECCIÓN CONTRA IMPACTO (Jergas: riel, bloque de concreto, guardavía)
-      if (t.includes("riel") || t.includes("bloque de proteccion") || t.includes("guardavia")) {
-        if (t.includes("chocado") || t.includes("impactado") || t.includes("dañado")) {
-          updates.push({ campo: "proteccion_impacto_poste", valor: "DAÑADO / IMPACTADO" });
-        } else if (t.includes("falta") || t.includes("no tiene")) {
-          updates.push({ campo: "proteccion_impacto_poste", valor: "FALTANTE" });
-        } else {
-          updates.push({ campo: "proteccion_impacto_poste", valor: "CONFORME" });
-        }
-      }
-
-      // 19. TRANSFORMADOR / SED (Jergas: fuga de aceite, mancha en cuba, cuba oxidada)
-      if (t.includes("aceite") || t.includes("fuga") || t.includes("trafo") || t.includes("cuba")) {
-        if (t.includes("fuga") || t.includes("derrame") || t.includes("goteo")) {
-          updates.push({ campo: "perdida_aceite", valor: "PÉRDIDA DE ACEITE / CONTAMINACIÓN" });
-        } else {
-          updates.push({ campo: "perdida_aceite", valor: "NO" });
-        }
-        if (t.includes("cuba oxidada") || t.includes("corrosion en trafo")) {
-          updates.push({ campo: "corrosion_cuba_equipo", valor: "CORROSIÓN ALTA" });
-        }
-      }
-
-      // 20. ÁRBOLES Y VEGETACIÓN (Jergas: ramas rozando, podado urgente, arbolado)
-      if (t.includes("arbol") || t.includes("ramas") || t.includes("follaje") || t.includes("vegetacion")) {
-        if (t.includes("contacto") || t.includes("tocando") || t.includes("rozando")) {
-          updates.push({ campo: "acercamiento_arboles", valor: "RAMAS EN CONTACTO" });
-        } else if (t.includes("cerca") || t.includes("proximo")) {
-          updates.push({ campo: "acercamiento_arboles", valor: "RAMAS CERCA" });
-        } else {
-          updates.push({ campo: "acercamiento_arboles", valor: "SIN PRESENCIA" });
-        }
-      }
-
-      // 21. DISTANCIAS DE SEGURIDAD DMS (Jergas: invasión de faja, volado de techo, letrero pegado)
-      if (t.includes("dms") || t.includes("distancia de seguridad") || t.includes("faja")) {
-        if (t.includes("edificacion") || t.includes("casa") || t.includes("techo") || t.includes("volado") || t.includes("balcon")) {
-          updates.push({ campo: "riesgo_dms", valor: "RIESGO A EDIFICACIÓN" });
-        } else if (t.includes("telecom") || t.includes("baja tension") || t.includes("bt")) {
-          updates.push({ campo: "riesgo_dms", valor: "RIESGO A TELECOM / BT" });
-        } else if (t.includes("cartel") || t.includes("grifo") || t.includes("letrero")) {
-          updates.push({ campo: "riesgo_dms", valor: "RIESGO A CARTEL / GRIFO" });
-        }
-      }
-
-      // 22. USO COMPARTIDO (Jergas: cables de claro/movistar, fibra de terceros, alumbrado pastoral)
-      if (t.includes("pastoral") || t.includes("alumbrado publico")) {
-        updates.push({ campo: "uso_compartido_redes", valor: "PASTORAL BT" });
-      } else if (t.includes("telecom") || t.includes("fibra") || t.includes("claro") || t.includes("telefonica")) {
-        updates.push({ campo: "uso_compartido_redes", valor: "CABLES TELECOM" });
-      }
-
-      // 23. ACCESIBILIDAD GRÚA (Jergas: no entra camioneta, trocha cerrada, predio cerrado)
-      if (t.includes("grua") || t.includes("camion") || t.includes("canastilla") || t.includes("acceso")) {
-        if (t.includes("privad") || t.includes("cerrado") || t.includes("tranca")) {
-          updates.push({ campo: "accesibilidad_grua", valor: "INACCESIBLE-PRIVADA" });
-        } else if (t.includes("angost") || t.includes("falta espacio") || t.includes("no entra")) {
-          updates.push({ campo: "accesibilidad_grua", valor: "INACCESIBLE-FALTA ESPACIO" });
-        } else {
-          updates.push({ campo: "accesibilidad_grua", valor: "ACCESIBLE" });
-        }
-      }
-
-      // 24. ROTULADO Y EMPRESA
-      if (t.includes("rotulado") || t.includes("placa")) {
-        if (t.includes("borroso") || t.includes("ilegible")) {
-          updates.push({ campo: "rotulado_etiquetado", valor: "BORROSO / NO CONFORME" });
-        } else if (t.includes("no tiene") || t.includes("falta codigo")) {
-          updates.push({ campo: "rotulado_etiquetado", valor: "NO TIENE" });
-        } else {
-          updates.push({ campo: "rotulado_etiquetado", valor: "CONFORME" });
-        }
-      }
-      if (t.includes("tecsur")) updates.push({ campo: "empresa", valor: "TECSUR" });
-      if (t.includes("luz del sur") || t.includes("lds")) updates.push({ campo: "empresa", valor: "LDS-LUZ DEL SUR" });
-
-      // Fallback a observaciones si nada calzó
-      if (updates.length === 0) {
-        updates.push({ campo: "observaciones", valor: texto });
-      }
-
-      return updates;
-    }
-
-    function ejecutarClasificacion() {
-      detenerTemporizador();
-      const texto = dictadoInput.value.trim();
-      if (!texto) return;
-
-      const resultados = procesarTexto(texto);
-      rtTagsContainer.innerHTML = "";
-
-      resultados.forEach(item => {
-        setField(item.campo, item.valor);
+      cfg.subclases.forEach(sub => {
+        const val = registrosInspeccion[nombreClase][sub];
+        const tieneValor = val !== "";
 
         const div = document.createElement("div");
-        div.className = "rt-item";
-        div.innerHTML = `<span class="badge-field">${item.campo}</span><span class="badge-arrow">➔</span><span class="badge-value">${item.valor}</span>`;
-        rtTagsContainer.appendChild(div);
+        div.className = "flex items-center justify-between p-2 rounded-md bg-slate-900/90 border border-slate-800 text-xs";
+        div.innerHTML = `
+          <div class="flex items-center gap-1.5 overflow-hidden">
+            <span class="font-medium text-slate-300 truncate">${sub}</span>
+            <span class="text-sky-400 font-bold">➔</span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="font-mono text-[11px] ${tieneValor ? 'text-emerald-400 font-bold bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/50' : 'text-slate-500 italic'}">
+              ${tieneValor ? val : '[Sin registrar]'}
+            </span>
+            <button class="btn-editar-manual text-[10px] bg-slate-800 hover:bg-slate-700 text-sky-300 px-1.5 py-0.5 rounded" data-clase="${nombreClase}" data-sub="${sub}">✏️</button>
+          </div>
+        `;
+        contSub.appendChild(div);
       });
 
-      refreshSummaryTable();
-      statusText.innerText = `✓ Clasificado: ${resultados.length} campo(s) actualizados.`;
-      dictadoInput.value = "";
+      // Render de Galería de fotos en su carpeta correspondiente
+      actualizarGaleriaClase();
+      actualizarContadorTotal();
     }
 
-    // Temporizador de inactividad de 10s
-    let timerId = null;
-    let countdownInterval = null;
-    let timeLeft = 10;
+    function actualizarGaleriaClase() {
+      const contGaleria = document.getElementById("galeria-clase-activa");
+      const fotos = carpetasFotograficas[claseMayorActiva];
+      const badge = document.getElementById("badge-contador-fotos");
 
-    function iniciarTemporizador() {
-      detenerTemporizador();
-      timeLeft = 10;
-      countdownBadge.innerText = `${timeLeft}s para procesar`;
-      countdownBadge.className = "timer-badge active";
+      badge.innerText = `📁 Fotos en Carpeta ${claseMayorActiva}: ${fotos.length}`;
+      contGaleria.innerHTML = "";
 
-      countdownInterval = setInterval(() => {
-        timeLeft--;
-        if (timeLeft > 0) {
-          countdownBadge.innerText = `${timeLeft}s para procesar`;
-        } else {
-          detenerTemporizador();
-        }
-      }, 1000);
-
-      timerId = setTimeout(() => {
-        ejecutarClasificacion();
-      }, 10000);
-    }
-
-    function detenerTemporizador() {
-      if (timerId) clearTimeout(timerId);
-      if (countdownInterval) clearInterval(countdownInterval);
-      timerId = null;
-      countdownInterval = null;
-      countdownBadge.innerText = "Inactivo";
-      countdownBadge.className = "timer-badge";
-    }
-
-    dictadoInput.addEventListener("input", () => {
-      if (dictadoInput.value.trim().length > 0) {
-        iniciarTemporizador();
-      } else {
-        detenerTemporizador();
-      }
-    });
-
-    btnProcesar.addEventListener("click", () => ejecutarClasificacion());
-
-    dictadoInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        ejecutarClasificacion();
-      }
-    });
-
-    dynamicForm.addEventListener("change", () => refreshSummaryTable());
-    dynamicForm.addEventListener("input", () => refreshSummaryTable());
-
-    btnExportCsv.addEventListener("click", () => {
-      const controls = dynamicForm.querySelectorAll("input[type='text'], select");
-      let csvContent = "Campo,Valor\n";
-      let count = 0;
-
-      controls.forEach(ctrl => {
-        const val = ctrl.value.trim();
-        if (val !== "") {
-          const safeVal = `"${val.replace(/"/g, '""')}"`;
-          csvContent += `${ctrl.id},${safeVal}\n`;
-          count++;
-        }
-      });
-
-      if (count === 0) {
-        alert("No hay ningún campo llenado para exportar.");
+      if (fotos.length === 0) {
+        contGaleria.innerHTML = `<p class="text-[11px] text-slate-500 italic col-span-4 text-center py-2">Sin capturas para esta clase aún.</p>`;
         return;
       }
 
-      const codPoste = document.getElementById("cod_activo_principal").value.trim() || "INSPECCION";
-      const fecha = new Date().toISOString().slice(0,10);
-      const filename = `${codPoste}_${fecha}.csv`;
+      fotos.forEach((src, idx) => {
+        const div = document.createElement("div");
+        div.className = "relative aspect-square rounded-md overflow-hidden border border-slate-700 bg-black";
+        div.innerHTML = `
+          <img src="${src}" class="w-full h-full object-cover">
+          <span class="absolute bottom-0 right-0 bg-black/70 text-[9px] text-sky-300 px-1 font-mono">#${idx+1}</span>
+        `;
+        contGaleria.appendChild(div);
+      });
+    }
 
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    function actualizarContadorTotal() {
+      let totalLlenadas = 0;
+      Object.values(registrosInspeccion).forEach(campos => {
+        Object.values(campos).forEach(v => {
+          if (v !== "") totalLlenadas++;
+        });
+      });
+      document.getElementById("lbl-total-registrados").innerText = `${totalLlenadas} variables llenadas`;
+    }
 
-      statusText.innerText = `✓ Archivo '${filename}' descargado con éxito.`;
+    selClaseMayor.addEventListener("change", (e) => {
+      renderClaseActiva(e.target.value);
     });
 
-    btnPhoto.addEventListener("click", () => cameraInput.click());
-    cameraInput.addEventListener("change", (e) => {
+    // 5. EDICIÓN RÁPIDA MANUAL
+    document.addEventListener("click", (e) => {
+      if (e.target.classList.contains("btn-editar-manual")) {
+        const c = e.target.dataset.clase;
+        const s = e.target.dataset.sub;
+        const actual = registrosInspeccion[c][s];
+        const nuevo = prompt(`Ingresar valor para ${c} ➔ ${s}:`, actual);
+        if (nuevo !== null) {
+          registrosInspeccion[c][s] = nuevo.trim();
+          renderClaseActiva(c);
+        }
+      }
+    });
+
+    // 6. CAMBIO DE MODO PRINCIPAL DE INSPECCIÓN
+    const selTipo = document.getElementById("sel-tipo-inspeccion");
+    const secVisual = document.getElementById("seccion-visual");
+    const secTermo = document.getElementById("seccion-termografica");
+    const secElect = document.getElementById("seccion-electricos");
+
+    selTipo.addEventListener("change", (e) => {
+      const modo = e.target.value;
+      secVisual.classList.add("hidden");
+      secTermo.classList.add("hidden");
+      secElect.classList.add("hidden");
+
+      if (modo === "VISUAL") secVisual.classList.remove("hidden");
+      else if (modo === "TERMOGRAFICA") secTermo.classList.remove("hidden");
+      else if (modo === "PARAMETROS_ELECTRICOS") secElect.classList.remove("hidden");
+    });
+
+    // 7. CAPTURA Y ASIGNACIÓN DE FOTOGRAFÍAS A CARPETA DE LA CLASE MAYOR
+    const btnCam = document.getElementById("btn-camara");
+    const inputCam = document.getElementById("input-camara");
+
+    btnCam.addEventListener("click", () => inputCam.click());
+
+    inputCam.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (event) => {
-          const base64 = event.target.result;
-          photos.push(base64);
-          
-          const thumb = document.createElement("div");
-          thumb.className = "photo-thumb";
-          thumb.innerHTML = `<img src="${base64}" alt="Foto">`;
-          photoContainer.appendChild(thumb);
-          
-          photoCounter.innerText = `(${photos.length})`;
-          statusText.innerText = `✓ Foto ${photos.length} almacenada.`;
+        reader.onload = (ev) => {
+          carpetasFotograficas[claseMayorActiva].push(ev.target.result);
+          actualizarGaleriaClase();
+          alert(`Foto guardada correctamente en la carpeta: ${claseMayorActiva}`);
         };
         reader.readAsDataURL(file);
       }
     });
+
+    // 8. MOTOR DE ASIGNACIÓN NLU (DEMOSTRACIÓN DUAL EN TIEMPO REAL)
+    document.getElementById("btn-procesar-dual").addEventListener("click", () => {
+      const txt = document.getElementById("txt-dictado").value.trim().toLowerCase();
+      if (!txt) return;
+
+      // Normalización fonética rápida
+      const t = txt
+        .replace(/\b(cutao|cut aut|kutao)\b/g, "cut out")
+        .replace(/\b(de ms|de meses)\b/g, "dms")
+        .replace(/\b(cac|cemento)\b/g, "concreto");
+
+      // Ruteo de clase mayor detectada
+      if (t.includes("poste")) {
+        selClaseMayor.value = "Poste";
+        renderClaseActiva("Poste");
+        if (t.includes("concreto")) registrosInspeccion["Poste"]["Material"] = "CONCRETO";
+        if (t.match(/\b(11|12|13|14|15)\b/)) registrosInspeccion["Poste"]["Altura"] = t.match(/\b(11|12|13|14|15)\b/)[0] + " m";
+        if (t.includes("base")) registrosInspeccion["Poste"]["Estado Base"] = "Fisurada / Rajaduras";
+      }
+
+      if (t.includes("cut out") || t.includes("seccionador")) {
+        registrosInspeccion["Seccionadores / Cut Out"]["Descarga / Estado"] = t.includes("descarga") ? "DESCARGA / FOGUEADO" : "CONFORME";
+        if (t.includes("corrosion")) registrosInspeccion["Seccionadores / Cut Out"]["Corrosión"] = "ALTA CORROSIÓN";
+      }
+
+      if (t.includes("dms")) {
+        registrosInspeccion["DMS"]["Incumple / Presenta"] = t.includes("incumple") ? "SI (INCUMPLE)" : "NO (CUMPLE)";
+        if (t.includes("predio")) registrosInspeccion["DMS"]["Qué Concepto"] = "PREDIO";
+        const mDist = t.match(/(\d+(?:\.\d+)?)\s*(?:m|metros)/);
+        if (mDist) registrosInspeccion["DMS"]["Distancia"] = mDist[1] + " m";
+        registrosInspeccion["DMS"]["Manga"] = t.includes("manga") ? "SI TIENE" : "NO TIENE";
+      }
+
+      renderClaseActiva(selClaseMayor.value);
+      document.getElementById("txt-dictado").value = "";
+    });
+
+    // 9. EXPORTADOR A ZIP CON CARPETAS SEPARADAS PARA CADA CLASE
+    document.getElementById("btn-descargar-zip").addEventListener("click", () => {
+      const zip = new JSZip();
+      
+      // Crear archivo de texto estructurado de la inspección
+      let reporte = "REPORTE DE INSPECCIÓN VISUAL MT (TECSUR / LDS)\n==============================================\n\n";
+      Object.entries(registrosInspeccion).forEach(([clase, subcampos]) => {
+        reporte += `[CLASE MAYOR: ${clase.toUpperCase()}]\n`;
+        Object.entries(subcampos).forEach(([sub, val]) => {
+          reporte += `  ${sub} ➔ ${val || '[Sin registrar]'}\n`;
+        });
+        reporte += "\n";
+      });
+      zip.file("Inspeccion_Visual_MT.txt", reporte);
+
+      // Crear carpetas de fotos por cada clase mayor
+      let totalFotos = 0;
+      Object.entries(carpetasFotograficas).forEach(([clase, arrayFotos]) => {
+        if (arrayFotos.length > 0) {
+          const nombreCarpeta = "Fotos_" + clase.replace(/[\/\s]/g, "_");
+          const folder = zip.folder(nombreCarpeta);
+          arrayFotos.forEach((b64, idx) => {
+            const dataBase64 = b64.split(',')[1];
+            folder.file(`foto_${clase.toLowerCase()}_${idx+1}.jpg`, dataBase64, { base64: true });
+            totalFotos++;
+          });
+        }
+      });
+
+      zip.generateAsync({ type: "blob" }).then(content => {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(content);
+        link.download = `Inspeccion_MT_${Date.now()}.zip`;
+        link.click();
+        alert(`Estructura exportada con éxito. Total fotos empaquetadas: ${totalFotos}`);
+      });
+    });
+
+    // 10. MODAL DE PESOS NLU
+    const modalPesos = document.getElementById("modal-pesos");
+    document.getElementById("btn-config").onclick = () => modalPesos.classList.remove("hidden");
+    document.getElementById("btn-cerrar-pesos").onclick = () => modalPesos.classList.add("hidden");
+    document.getElementById("btn-guardar-pesos").onclick = () => modalPesos.classList.add("hidden");
+
+    document.getElementById("rng-wsint").oninput = (e) => document.getElementById("lbl-wsint").innerText = e.target.value;
+    document.getElementById("rng-wsem").oninput = (e) => document.getElementById("lbl-wsem").innerText = e.target.value;
+    document.getElementById("rng-th").oninput = (e) => document.getElementById("lbl-th").innerText = e.target.value;
+
+    // Inicializar en primera clase
+    renderClaseActiva("Poste");
   </script>
 </body>
 </html>
